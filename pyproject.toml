@@ -1,5 +1,5 @@
 [project]
-name = "galaxian-clone"
+name = "space_attackers"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
