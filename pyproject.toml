@@ -1,0 +1,19 @@
+[project]
+name = "galaxian-clone"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "arcade>=3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+## Then install with `pip install -e ".[dev]"` to get everything including dev tools.
+
