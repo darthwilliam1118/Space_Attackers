@@ -19,7 +19,7 @@
 - Run tests with: pytest --cov=src
 
 ## Dependencies
-- Python 3.11+
+- Python 3.14
 - Arcade 3.x
 - Do not introduce new dependencies without flagging it
 
