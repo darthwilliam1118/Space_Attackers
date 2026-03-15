@@ -26,3 +26,13 @@
 ## Code Style
 - Type hints on all functions
 - Keep classes focused and single-responsibility
+
+## Type Checking
+- Pylance type checking set to basic
+- All functions must have type hints on parameters and return values
+- Fix any type errors introduced before committing
+
+## Build
+- Target: self-contained Windows .exe via PyInstaller
+- All assets must be loaded using resource paths compatible with PyInstaller bundles
+- Use a helper function for asset paths that handles both dev and bundled contexts
