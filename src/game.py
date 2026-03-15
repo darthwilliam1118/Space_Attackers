@@ -1,5 +1,5 @@
 import arcade
-from src.views.splash import SplashView
+from src.state import GameState, GameStateManager
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -12,7 +12,8 @@ class GameWindow(arcade.Window):
     def __init__(self) -> None:
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
         arcade.set_background_color(arcade.color.BLACK)
-        self.show_view(SplashView())
+        self._manager = GameStateManager(self)
+        self._manager.transition(GameState.SPLASH)
 
 
 def main() -> None:

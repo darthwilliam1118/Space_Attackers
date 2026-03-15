@@ -1,0 +1,4 @@
+[game]
+starting_level = 1
+num_lives = 3
+spawn_safe_radius = 80

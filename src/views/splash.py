@@ -1,11 +1,36 @@
+"""Splash screen — title card shown on launch."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import arcade
+
+if TYPE_CHECKING:
+    from src.state import GameStateManager
 
 
 class SplashView(arcade.View):
-    """Splash screen: displays title and waits for any key press to exit."""
+    """Displays the game title and waits for any key to proceed to MAIN."""
 
     TITLE = "Space Attackers!"
     PROMPT = "Press any key to continue..."
+
+    _AUTO_ADVANCE = 5.0
+
+    def __init__(self, manager: "GameStateManager") -> None:
+        super().__init__()
+        self._manager = manager
+        self._elapsed: float = 0.0
+
+    def on_update(self, delta_time: float) -> None:
+        self._elapsed += delta_time
+        if self._elapsed >= self._AUTO_ADVANCE:
+            self._go_to_main()
+
+    def _go_to_main(self) -> None:
+        from src.state import GameState
+        self._manager.transition(GameState.MAIN)
 
     def on_draw(self) -> None:
         self.clear()
@@ -34,4 +59,4 @@ class SplashView(arcade.View):
         )
 
     def on_key_press(self, key: int, modifiers: int) -> None:
-        arcade.exit()
+        self._go_to_main()
