@@ -2,3 +2,11 @@
 starting_level = 1
 num_lives = 3
 spawn_safe_radius = 80
+
+[ship]
+ship_speed = 300
+fire_cooldown = 0.3
+bullet_speed = 500
+spawn_invincible_duration = 2.0
+ship_zone_height_pct = 0.20
+explosion_frame_duration = 0.05

@@ -3,7 +3,7 @@ name = "space_attackers"
 version = "0.1.0"
 requires-python = ">=3.14"
 dependencies = [
-    "arcade>=3.0",
+    "arcade>=3.3.3,<4.0",
 ]
 
 [project.optional-dependencies]
