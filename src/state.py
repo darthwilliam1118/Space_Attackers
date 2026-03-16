@@ -134,27 +134,50 @@ class GameStateManager:
         self.transition(GameState.START_LEVEL)
 
     def _handle_start_level(self) -> None:
+        from src.enemy_grid import EnemyGrid
         from src.spawn_safety import apply_spawn_safety
 
         players: list = self.context.get("players", [])
         idx: int = self.context.get("active_player_index", 0)
+        cfg = self.context.get("config")
+
+        from src.enemy_config import EnemyConfig
+        enemy_cfg: EnemyConfig = cfg.enemies if cfg else EnemyConfig()
+        w: int = self.window.width
+        h: int = self.window.height
+
+        grid: EnemyGrid
         if players:
             player = players[idx]
             if player.level_snapshot is not None:
-                cfg = self.context.get("config")
                 radius = cfg.spawn_safe_radius if cfg else 80
-                ship_spawn = (400, 60)  # default spawn position
+                # Ship spawns at horizontal centre, bottom of movement zone
+                from src.ship_config import ShipConfig
+                ship_cfg = cfg.ship if cfg else ShipConfig()
+                spawn_y = h * ship_cfg.ship_zone_height_pct / 2.0
+                ship_spawn = (w / 2.0, spawn_y)
                 apply_spawn_safety(player.level_snapshot, ship_spawn, radius)
+                grid = EnemyGrid.from_snapshot(player.level_snapshot, enemy_cfg, w, h)
+            else:
+                grid = EnemyGrid(enemy_cfg, w, h)
+                grid.setup(player.current_level)
+        else:
+            grid = EnemyGrid(enemy_cfg, w, h)
+            grid.setup(1)
+
+        self.context["enemy_grid"] = grid
         self.transition(GameState.RUN_LEVEL)
 
     def _handle_save_snapshot_and_switch(self) -> None:
         """Serialise level state for the active player, then switch."""
+        from src.enemy_grid import EnemyGrid
+
         players: list = self.context.get("players", [])
         idx: int = self.context.get("active_player_index", 0)
-        level_state: Optional[dict] = self.context.get("level_state")
+        grid: Optional[EnemyGrid] = self.context.get("enemy_grid")
 
-        if players and level_state is not None:
-            snapshot = dict(level_state)
+        if players and grid is not None:
+            snapshot = grid.to_snapshot()
             snapshot.pop("projectiles", None)  # discard in-flight projectiles
             players[idx].level_snapshot = snapshot
 

@@ -1,4 +1,4 @@
-"""RUN_LEVEL view — player ship, bullets, explosions, and debug shortcuts."""
+"""RUN_LEVEL view — player ship, enemy grid, bullets, explosions, and HUD."""
 
 from __future__ import annotations
 
@@ -9,20 +9,21 @@ import arcade
 if TYPE_CHECKING:
     from src.state import GameStateManager
 
-from src.sprites.player_ship import PlayerShip
+from src.enemy_grid import EnemyGrid
+from src.game_event import GameEvent
+from src.ship_config import ShipConfig
 from src.sprites.explosion import ExplosionSprite
-from src.sprites.player_bullet import PlayerBullet
+from src.sprites.player_ship import PlayerShip
 
 
 class RunLevelView(arcade.View):
     """Active gameplay screen.
 
-    Instantiates the player ship, handles input, and drives sprite updates.
-    Transitions to LEVEL_COMPLETE or PLAYER_KILLED via GameStateManager.
+    Drives input, movement, collision detection, and rendering.
+    Transitions via GameStateManager — never called from EnemyGrid directly.
 
-    Debug shortcuts (marked # DEBUG):
-      Shift+W  — simulate win (LEVEL_COMPLETE)
-      L        — simulate player killed (triggers explosion then PLAYER_KILLED)
+    Debug shortcuts (# DEBUG):
+      Shift+E — instantly clear all enemies → LEVEL_COMPLETE
     """
 
     def __init__(self, manager: "GameStateManager") -> None:
@@ -30,15 +31,14 @@ class RunLevelView(arcade.View):
         self._manager = manager
         self._keys_held: set[int] = set()
 
-        # Sprites — all rendered via SpriteLists (Arcade 3.x has no Sprite.draw())
         self._ship: Optional[PlayerShip] = None
         self._ship_list = arcade.SpriteList()
-        self._bullets = arcade.SpriteList()
+        self._player_bullets = arcade.SpriteList()
         self._explosions = arcade.SpriteList()
+        self._grid: Optional[EnemyGrid] = None
 
-        # State
-        self._dying: bool = False  # True while death explosion plays
-        self._explosion: Optional[ExplosionSprite] = None
+        self._dying: bool = False
+        self._death_explosion: Optional[ExplosionSprite] = None
 
         self._setup()
 
@@ -47,15 +47,12 @@ class RunLevelView(arcade.View):
     # ------------------------------------------------------------------
 
     def _setup(self) -> None:
-        players = self._manager.context.get("players", [])
-        idx = self._manager.context.get("active_player_index", 0)
-        cfg = self._manager.context.get("config")
+        ctx = self._manager.context
+        players = ctx.get("players", [])
+        idx = ctx.get("active_player_index", 0)
+        cfg = ctx.get("config")
 
-        ship_cfg = cfg.ship if cfg else None
-        from src.ship_config import ShipConfig
-        if ship_cfg is None:
-            ship_cfg = ShipConfig()
-
+        ship_cfg: ShipConfig = cfg.ship if cfg else ShipConfig()
         player_num = players[idx].player_num if players else 1
 
         self._ship = PlayerShip(
@@ -65,6 +62,7 @@ class RunLevelView(arcade.View):
             window_height=self.window.height,
         )
         self._ship_list.append(self._ship)
+        self._grid = ctx.get("enemy_grid")
 
     # ------------------------------------------------------------------
     # Arcade callbacks
@@ -76,11 +74,11 @@ class RunLevelView(arcade.View):
     def on_update(self, delta_time: float) -> None:
         from src.state import GameState
 
-        # If death explosion is playing, wait for it to complete.
+        # Death explosion plays out before transitioning
         if self._dying:
-            if self._explosion is not None:
-                self._explosion.update(delta_time)
-                if self._explosion.is_complete:
+            if self._death_explosion is not None:
+                self._death_explosion.update(delta_time)
+                if self._death_explosion.is_complete:
                     self._manager.transition(GameState.PLAYER_KILLED)
             return
 
@@ -90,60 +88,66 @@ class RunLevelView(arcade.View):
         self._ship.apply_movement(self._keys_held, delta_time)
         self._ship.update(delta_time)
 
-        for bullet in list(self._bullets):
-            bullet.update(delta_time)  # type: ignore[arg-type]
+        # Update non-enemy explosions (enemy hit effects)
+        for exp in list(self._explosions):
+            exp.update(delta_time)  # type: ignore[arg-type]
 
-        for explosion in list(self._explosions):
-            explosion.update(delta_time)  # type: ignore[arg-type]
+        if self._grid is None:
+            return
+
+        # Player bullets vs enemy grid
+        for bullet in list(self._player_bullets):
+            bullet.update(delta_time)  # type: ignore[arg-type]
+            if bullet.sprite_lists:  # still alive (not self-removed from off-screen)
+                hit = self._grid.apply_player_bullet(bullet)
+                if hit:
+                    exp = ExplosionSprite(
+                        x=bullet.center_x,
+                        y=bullet.center_y,
+                        frame_duration=0.05,
+                    )
+                    self._explosions.append(exp)
+                    bullet.remove_from_sprite_lists()
+                    self._update_score(10)
+                    if self._grid.is_cleared():
+                        self._manager.transition(GameState.LEVEL_COMPLETE)
+                        return
+
+        # Enemy grid: movement, shooting, collision detection
+        cfg = self._manager.context.get("config")
+        zone_pct = cfg.ship.ship_zone_height_pct if cfg else 0.20
+        ship_zone_top = self.window.height * zone_pct
+
+        # Collisions are skipped while player is invincible
+        collision_target = self._ship if not self._ship.is_invincible() else None
+        events = self._grid.update(delta_time, collision_target, ship_zone_top)
+
+        for event in events:
+            if event == GameEvent.PLAYER_KILLED:
+                self._trigger_death()
+                return
+            elif event == GameEvent.LEVEL_COMPLETE:
+                self._manager.transition(GameState.LEVEL_COMPLETE)
+                return
 
     def on_draw(self) -> None:
         self.clear()
-        width = self.window.width
-        height = self.window.height
+        self._draw_hud()
 
-        players = self._manager.context.get("players", [])
-        idx = self._manager.context.get("active_player_index", 0)
-        if players:
-            p = players[idx]
-            hud_label = f"Player {p.player_num}  Level {p.current_level}  Lives {p.lives}"
-        else:
-            hud_label = "Player 1  Level 1"
+        if self._grid is not None:
+            self._grid.get_sprite_list().draw()
+            self._grid.get_bullet_sprite_list().draw()
 
-        arcade.draw_text(
-            hud_label,
-            width / 2,
-            height - 20,
-            arcade.color.WHITE,
-            font_size=14,
-            anchor_x="center",
-            anchor_y="center",
-        )
-
-        # Debug hint
-        arcade.draw_text(
-            "Shift+W = Win    L = Die",
-            width / 2,
-            height - 38,
-            arcade.color.DARK_GRAY,
-            font_size=11,
-            anchor_x="center",
-            anchor_y="center",
-        )
-
+        self._player_bullets.draw()
         self._ship_list.draw()
-        self._bullets.draw()
         self._explosions.draw()
 
     def on_key_press(self, key: int, modifiers: int) -> None:
         from src.state import GameState
 
-        # DEBUG: Shift+W = win, L = die
-        if key == arcade.key.W and (modifiers & arcade.key.MOD_SHIFT):  # DEBUG
+        # DEBUG: Shift+E = instantly advance to LEVEL_COMPLETE
+        if key == arcade.key.E and (modifiers & arcade.key.MOD_SHIFT):  # DEBUG
             self._manager.transition(GameState.LEVEL_COMPLETE)  # DEBUG
-            return  # DEBUG
-
-        if key == arcade.key.L:  # DEBUG
-            self._trigger_death()  # DEBUG
             return  # DEBUG
 
         self._keys_held.add(key)
@@ -163,14 +167,59 @@ class RunLevelView(arcade.View):
             return
         bullet = self._ship.try_fire(self.window.height)
         if bullet is not None:
-            self._bullets.append(bullet)
+            self._player_bullets.append(bullet)
 
     def _trigger_death(self) -> None:
-        """Begin death sequence: show explosion, then transition."""
+        """Begin death sequence: explosion plays, then PLAYER_KILLED transition."""
         if self._dying or self._ship is None:
             return
         self._dying = True
         explosion = self._ship.kill()
-        self._explosion = explosion
+        self._death_explosion = explosion
         self._explosions.append(explosion)
         self._ship = None
+        self._ship_list.clear()
+
+    def _draw_hud(self) -> None:
+        """Player 1 score top-left, Player 2 score top-right."""
+        players = self._manager.context.get("players", [])
+        w = self.window.width
+        h = self.window.height
+
+        for player in players:
+            if player.player_num == 1:
+                arcade.draw_text(
+                    f"P1  {player.score:06d}  Lv{player.current_level}  x{player.lives}",
+                    10,
+                    h - 20,
+                    arcade.color.WHITE,
+                    font_size=14,
+                    anchor_x="left",
+                    anchor_y="center",
+                )
+            elif player.player_num == 2:
+                arcade.draw_text(
+                    f"P2  {player.score:06d}  Lv{player.current_level}  x{player.lives}",
+                    w - 10,
+                    h - 20,
+                    arcade.color.WHITE,
+                    font_size=14,
+                    anchor_x="right",
+                    anchor_y="center",
+                )
+
+        arcade.draw_text(
+            "Shift+E = Clear enemies",  # DEBUG
+            w / 2,
+            h - 20,
+            arcade.color.DARK_GRAY,
+            font_size=11,
+            anchor_x="center",
+            anchor_y="center",
+        )
+
+    def _update_score(self, points: int) -> None:
+        players = self._manager.context.get("players", [])
+        idx = self._manager.context.get("active_player_index", 0)
+        if players:
+            players[idx].score += points
