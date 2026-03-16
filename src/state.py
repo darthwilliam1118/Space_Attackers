@@ -93,6 +93,7 @@ class GameStateManager:
                 self.window.show_view(LevelCompleteView(self))
 
             case GameState.PLAYER_KILLED:
+                self._save_grid_snapshot()
                 self.window.show_view(PlayerKilledView(self))
 
             case GameState.SAVE_SNAPSHOT_AND_SWITCH:
@@ -167,6 +168,23 @@ class GameStateManager:
 
         self.context["enemy_grid"] = grid
         self.transition(GameState.RUN_LEVEL)
+
+    def _save_grid_snapshot(self) -> None:
+        """Snapshot the current enemy grid into the active player's level_snapshot.
+
+        Called before PLAYER_KILLED so the grid is preserved across respawns.
+        In-flight enemy bullets are discarded — same policy as SAVE_SNAPSHOT_AND_SWITCH.
+        """
+        from src.enemy_grid import EnemyGrid
+
+        players: list = self.context.get("players", [])
+        idx: int = self.context.get("active_player_index", 0)
+        grid: Optional[EnemyGrid] = self.context.get("enemy_grid")
+
+        if players and grid is not None:
+            snapshot = grid.to_snapshot()
+            snapshot.pop("projectiles", None)
+            players[idx].level_snapshot = snapshot
 
     def _handle_save_snapshot_and_switch(self) -> None:
         """Serialise level state for the active player, then switch."""

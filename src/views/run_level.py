@@ -39,6 +39,7 @@ class RunLevelView(arcade.View):
 
         self._dying: bool = False
         self._death_explosion: Optional[ExplosionSprite] = None
+        self._level_cleared: bool = False
 
         self._setup()
 
@@ -92,6 +93,12 @@ class RunLevelView(arcade.View):
         for exp in list(self._explosions):
             exp.update(delta_time)  # type: ignore[arg-type]
 
+        # Level-cleared: wait for the final enemy explosion to finish
+        if self._level_cleared:
+            if not self._explosions:
+                self._manager.transition(GameState.LEVEL_COMPLETE)
+            return
+
         if self._grid is None:
             return
 
@@ -99,18 +106,18 @@ class RunLevelView(arcade.View):
         for bullet in list(self._player_bullets):
             bullet.update(delta_time)  # type: ignore[arg-type]
             if bullet.sprite_lists:  # still alive (not self-removed from off-screen)
-                hit = self._grid.apply_player_bullet(bullet)
-                if hit:
+                hit_pos = self._grid.apply_player_bullet(bullet)
+                if hit_pos is not None:
                     exp = ExplosionSprite(
-                        x=bullet.center_x,
-                        y=bullet.center_y,
+                        x=hit_pos[0],
+                        y=hit_pos[1],
                         frame_duration=0.05,
                     )
                     self._explosions.append(exp)
                     bullet.remove_from_sprite_lists()
                     self._update_score(10)
                     if self._grid.is_cleared():
-                        self._manager.transition(GameState.LEVEL_COMPLETE)
+                        self._level_cleared = True
                         return
 
         # Enemy grid: movement, shooting, collision detection

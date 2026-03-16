@@ -51,6 +51,13 @@ class PlayerKilledView(arcade.View):
         return GameState.GAME_OVER, {}
 
     def on_update(self, delta_time: float) -> None:
+        from src.state import GameState
+
+        # Explosion already played in RunLevelView — go straight to GAME_OVER.
+        if self._next_state == GameState.GAME_OVER:
+            self._manager.transition(GameState.GAME_OVER)
+            return
+
         self._elapsed += delta_time
         if self._elapsed >= _DISPLAY_DURATION:
             self._manager.transition(self._next_state, **self._manager.context)

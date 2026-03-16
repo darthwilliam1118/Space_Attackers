@@ -189,21 +189,21 @@ class EnemyGrid:
     # Player bullet hit
     # ------------------------------------------------------------------
 
-    def apply_player_bullet(self, bullet: arcade.Sprite) -> bool:
-        """Check *bullet* against the grid.  Returns True if a hit occurred.
+    def apply_player_bullet(self, bullet: arcade.Sprite) -> Optional[tuple[float, float]]:
+        """Check *bullet* against the grid.
 
+        Returns the hit enemy's center (cx, cy) on a hit, or None on a miss.
         Caller is responsible for removing the bullet.
-        Spawns an ExplosionSprite at the enemy position (added to explosions
-        externally — caller should inspect returned bool and handle explosion).
         """
         hits = arcade.check_for_collision_with_list(bullet, self._sprite_list)
         if not hits:
-            return False
+            return None
         enemy = hits[0]  # at most one enemy hit per bullet
+        cx, cy = enemy.center_x, enemy.center_y
         enemy.remove_from_sprite_lists()
         self._enemies_destroyed += 1
         self.recalculate_speed()
-        return True
+        return cx, cy
 
     # ------------------------------------------------------------------
     # Queries

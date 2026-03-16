@@ -4,7 +4,7 @@ num_lives = 3
 spawn_safe_radius = 80
 
 [enemies]
-enemy_cols = 5
+enemy_cols = 7
 enemy_rows = 4
 enemy_speed_initial = 30
 enemy_speed_max_bonus = 60

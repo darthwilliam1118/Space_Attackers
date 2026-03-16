@@ -253,20 +253,22 @@ class TestBottomEnemies:
 # ---------------------------------------------------------------------------
 
 class TestApplyPlayerBullet:
-    def test_returns_false_on_miss(self) -> None:
+    def test_returns_none_on_miss(self) -> None:
         g = _grid(enemy_cols=1, enemy_rows=1)
         bullet = EnemyBullet(9999, 9999, 500, texture=_bullet_tex())
-        assert g.apply_player_bullet(bullet) is False
+        assert g.apply_player_bullet(bullet) is None
 
-    def test_returns_true_on_hit(self) -> None:
+    def test_returns_enemy_center_on_hit(self) -> None:
         g = _grid(enemy_cols=1, enemy_rows=1)
         enemy = list(g.get_sprite_list())[0]
+        expected_cx, expected_cy = enemy.center_x, enemy.center_y
         # Use same texture size so collision hit box overlaps
         bullet_tex = arcade.Texture.create_empty("pb", (9, 54))
         bullet = arcade.Sprite(bullet_tex)
         bullet.center_x = enemy.center_x
         bullet.center_y = enemy.center_y
-        assert g.apply_player_bullet(bullet) is True
+        result = g.apply_player_bullet(bullet)
+        assert result == (expected_cx, expected_cy)
 
     def test_removes_enemy_on_hit(self) -> None:
         g = _grid(enemy_cols=1, enemy_rows=1)
