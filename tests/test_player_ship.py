@@ -63,14 +63,16 @@ class TestMovementClamping:
         s.apply_movement({arcade.key.DOWN}, delta_time=1.0)
         assert s.center_y >= 0
 
-    def test_movement_delta_time_scaled(self) -> None:
-        s1 = _ship(ship_speed=200)
-        s2 = _ship(ship_speed=200)
+    def test_larger_delta_time_moves_further(self) -> None:
+        # With momentum the relationship is quadratic in dt, not linear —
+        # just assert that a larger timestep produces more displacement.
+        s1 = _ship(ship_speed=200, ship_accel=1000, ship_decel=1200)
+        s2 = _ship(ship_speed=200, ship_accel=1000, ship_decel=1200)
         s1.center_x = W / 2
         s2.center_x = W / 2
-        s1.apply_movement({arcade.key.RIGHT}, delta_time=0.1)
-        s2.apply_movement({arcade.key.RIGHT}, delta_time=0.2)
-        assert s2.center_x - W / 2 == pytest.approx(2 * (s1.center_x - W / 2))
+        s1.apply_movement({arcade.key.RIGHT}, delta_time=0.05)
+        s2.apply_movement({arcade.key.RIGHT}, delta_time=0.10)
+        assert s2.center_x > s1.center_x
 
     def test_wasd_keys_move_ship(self) -> None:
         s = _ship(ship_speed=200)
@@ -84,22 +86,22 @@ class TestFiring:
         s = _ship(fire_cooldown=0.3, spawn_invincible_duration=0.0)
         # Drain cooldown from spawn invincibility period (none here).
         s._fire_cooldown_remaining = 0.0
-        bullet = s.try_fire(H)
+        bullet = s.try_fire()
         assert bullet is not None
 
     def test_fire_returns_none_during_cooldown(self) -> None:
         s = _ship(fire_cooldown=0.3)
         s._fire_cooldown_remaining = 0.0
-        s.try_fire(H)  # first shot — starts cooldown
-        bullet = s.try_fire(H)  # immediate second — should be None
+        s.try_fire()  # first shot — starts cooldown
+        bullet = s.try_fire()  # immediate second — should be None
         assert bullet is None
 
     def test_fire_returns_bullet_after_cooldown_expires(self) -> None:
         s = _ship(fire_cooldown=0.3)
         s._fire_cooldown_remaining = 0.0
-        s.try_fire(H)
+        s.try_fire()
         s.update(0.31)
-        bullet = s.try_fire(H)
+        bullet = s.try_fire()
         assert bullet is not None
 
     def test_p1_bullet_uses_blue_laser(self) -> None:
@@ -139,6 +141,80 @@ class TestInvincibility:
         for _ in range(20):
             s.update(0.05)
         assert s.visible
+
+
+class TestMomentum:
+    def test_ship_accelerates_from_rest(self) -> None:
+        s = _ship(ship_speed=200, ship_accel=400, ship_decel=600)
+        start_x = s.center_x
+        s.apply_movement({arcade.key.RIGHT}, delta_time=0.1)
+        assert s.center_x > start_x
+
+    def test_velocity_capped_at_max_speed(self) -> None:
+        s = _ship(ship_speed=200, ship_accel=10000, ship_decel=0)
+        # Huge accel — should not exceed max_speed (200 * 2 = 400)
+        s.apply_movement({arcade.key.RIGHT}, delta_time=1.0)
+        assert s._vx == pytest.approx(200 * 2.0)
+
+    def test_decelerates_to_zero_when_no_key(self) -> None:
+        s = _ship(ship_speed=200, ship_accel=10000, ship_decel=10000)
+        s._vx = 100.0
+        s.apply_movement(set(), delta_time=1.0)
+        assert s._vx == pytest.approx(0.0)
+
+    def test_deceleration_does_not_overshoot_zero(self) -> None:
+        s = _ship(ship_speed=200, ship_accel=0, ship_decel=10000)
+        s._vx = 50.0
+        s.apply_movement(set(), delta_time=1.0)
+        assert s._vx >= 0.0
+
+    def test_opposite_key_reverses_velocity(self) -> None:
+        s = _ship(ship_speed=200, ship_accel=10000, ship_decel=10000)
+        s._vx = 300.0
+        s.apply_movement({arcade.key.LEFT}, delta_time=1.0)
+        assert s._vx < 300.0
+
+
+class TestTilt:
+    def test_no_tilt_at_rest(self) -> None:
+        s = _ship(ship_tilt_rate=90.0)
+        s._vx = 0.0
+        s._update_tilt(1.0)
+        assert s.angle == pytest.approx(0.0)
+
+    def test_tilts_right_when_moving_right(self) -> None:
+        s = _ship(ship_speed=200, ship_tilt_rate=180.0)
+        s._vx = 400.0  # max speed
+        s._update_tilt(1.0)
+        assert s.angle > 0.0  # positive = lean right
+
+    def test_tilts_left_when_moving_left(self) -> None:
+        s = _ship(ship_speed=200, ship_tilt_rate=180.0)
+        s._vx = -400.0  # max speed left
+        s._update_tilt(1.0)
+        assert s.angle < 0.0  # negative = lean left
+
+    def test_tilt_capped_at_45_degrees(self) -> None:
+        s = _ship(ship_speed=200, ship_tilt_rate=180.0)
+        s._vx = 400.0  # exactly max speed
+        s._update_tilt(1.0)
+        assert abs(s.angle) <= 45.0 + 1e-6
+
+    def test_tilt_returns_to_zero_at_rest(self) -> None:
+        s = _ship(ship_speed=200, ship_tilt_rate=180.0)
+        s._tilt_angle = 30.0
+        s._vx = 0.0
+        s._update_tilt(1.0)
+        assert s.angle == pytest.approx(0.0)
+
+    def test_tilt_rate_limits_step(self) -> None:
+        # With tilt_rate=10 and dt=0.1 → max 1° per call.
+        # Moving left (vx < 0) now gives negative angle (lean left).
+        s = _ship(ship_speed=200, ship_tilt_rate=10.0)
+        s._vx = -400.0  # target = -45°
+        s._tilt_angle = 0.0
+        s._update_tilt(0.1)
+        assert -(1.0 + 1e-6) <= s.angle < 0.0
 
 
 class TestKill:

@@ -39,8 +39,16 @@ class EnemySprite(arcade.Sprite):
         if texture is not None:
             super().__init__(texture)
         else:
-            super().__init__(resource_path(sprite_path_for(color, ship_type)))
+            tex = arcade.load_texture(
+                resource_path(sprite_path_for(color, ship_type)),
+                hit_box_algorithm=arcade.hitbox.algo_simple,
+            )
+            super().__init__(tex)
         self.color_name: str = color
         self.ship_type: int = ship_type
         self.col: int = col
         self.row: int = row
+        # Spawn-time formation position — used as the return target when the
+        # enemy leaves the playfield (bottom snap, and future dive recovery).
+        self.home_x: float = 0.0
+        self.home_y: float = 0.0

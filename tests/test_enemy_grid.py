@@ -105,17 +105,22 @@ class TestGridSpawn:
         row3 = [s for s in g.get_sprite_list() if s.row == 3]
         assert all(s.color_name == "Red" and s.ship_type == 4 for s in row3)
 
-    def test_horizontal_spacing_has_one_buffer_column_each_side(self) -> None:
-        # Grid is laid out with (cols+2) column-width slots so there is
-        # exactly one empty column of space on each side before the margin.
-        margin = 40.0
+    def test_formation_is_centred_on_window(self) -> None:
+        # Formation should be horizontally centred: leftmost and rightmost
+        # enemies equidistant from the window centre.
         cols = 5
-        g = _grid(enemy_cols=cols, enemy_rows=1, enemy_side_margin=margin)
+        g = _grid(enemy_cols=cols, enemy_rows=1)
         xs = sorted(s.center_x for s in g.get_sprite_list())
-        usable_w = W - 2 * margin
-        col_spacing = usable_w / (cols + 1)
-        assert xs[0] == pytest.approx(margin + col_spacing)
-        assert xs[-1] == pytest.approx(margin + cols * col_spacing)
+        assert xs[0] + xs[-1] == pytest.approx(W, abs=1e-3)
+
+    def test_column_spacing_uses_sprite_width_factor(self) -> None:
+        # col_spacing = sprite_width × factor; enemy texture width = 48.
+        factor = 1.1
+        g = _grid(enemy_cols=3, enemy_rows=1, enemy_col_width_factor=factor)
+        xs = sorted(s.center_x for s in g.get_sprite_list())
+        expected_spacing = 48 * factor  # texture width × factor
+        assert xs[1] - xs[0] == pytest.approx(expected_spacing)
+        assert xs[2] - xs[1] == pytest.approx(expected_spacing)
 
     def test_topmost_row_at_80pct_height(self) -> None:
         g = _grid(enemy_cols=1, enemy_rows=1)
@@ -131,7 +136,7 @@ class TestGridMovement:
     def test_moves_right_by_default(self) -> None:
         g = _grid(enemy_speed_initial=100)
         initial_xs = [s.center_x for s in g.get_sprite_list()]
-        g.update(0.1, None, 0.0)
+        g.update(0.1, None)
         new_xs = [s.center_x for s in g.get_sprite_list()]
         assert all(nx > ox for nx, ox in zip(new_xs, initial_xs))
 
@@ -140,8 +145,8 @@ class TestGridMovement:
         g2 = _grid(enemy_speed_initial=100)
         xs1_before = [s.center_x for s in g1.get_sprite_list()]
         xs2_before = [s.center_x for s in g2.get_sprite_list()]
-        g1.update(0.1, None, 0.0)
-        g2.update(0.2, None, 0.0)
+        g1.update(0.1, None)
+        g2.update(0.2, None)
         delta1 = [s.center_x - ox for s, ox in zip(g1.get_sprite_list(), xs1_before)]
         delta2 = [s.center_x - ox for s, ox in zip(g2.get_sprite_list(), xs2_before)]
         for d1, d2 in zip(delta1, delta2):

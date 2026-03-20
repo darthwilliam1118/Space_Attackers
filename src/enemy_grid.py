@@ -64,20 +64,26 @@ class EnemyGrid:
         self._level = level
         cfg = self._config
         w, h = self._window_width, self._window_height
-        margin = cfg.enemy_side_margin
 
-        # Horizontal spacing: divide usable width into (cols + 2) slots so
-        # there is one empty column-width of buffer on each side of the grid.
-        # This gives the formation room to travel before bouncing down.
-        usable_w = w - 2 * margin
-        col_spacing = usable_w / (cfg.enemy_cols + 1)
+        # Fixed column spacing: probe one sprite to get its rendered width,
+        # then scale by the config factor (e.g. 1.1 = 10% wider than sprite).
+        _probe = EnemySprite(
+            color=ROW_MAPPING[0][0],
+            ship_type=ROW_MAPPING[0][1],
+            col=0,
+            row=0,
+            texture=self._enemy_texture,
+        )
+        col_spacing = _probe.width * cfg.enemy_col_width_factor
+
+        # Centre the formation horizontally on the window.
+        total_span = (cfg.enemy_cols - 1) * col_spacing
+        self._origin_x = w / 2.0 - total_span / 2.0
 
         # Vertical layout: topmost row at 80% of window height
         top_y = h * 0.80
         row_spacing = (h * 0.30) / max(cfg.enemy_rows - 1, 1) if cfg.enemy_rows > 1 else 0.0
 
-        # Grid origin = first enemy is one buffer column in from the left margin
-        self._origin_x = margin + col_spacing
         self._origin_y = top_y
 
         self._col_offsets = [c * col_spacing for c in range(cfg.enemy_cols)]
@@ -100,6 +106,8 @@ class EnemyGrid:
                 )
                 sprite.center_x = self._origin_x + self._col_offsets[col]
                 sprite.center_y = self._origin_y + self._row_offsets[row]
+                sprite.home_x = sprite.center_x
+                sprite.home_y = sprite.center_y
                 self._sprite_list.append(sprite)
 
         self._shoot_timers = {
@@ -116,7 +124,6 @@ class EnemyGrid:
         self,
         delta_time: float,
         player_ship: Optional[arcade.Sprite],
-        ship_zone_top: float,
     ) -> list[GameEvent]:
         """Move grid, handle shooting, check collisions.  Returns events."""
         events: list[GameEvent] = []
@@ -124,11 +131,13 @@ class EnemyGrid:
         self._move(delta_time)
         self.check_boundary()
 
-        # Check if grid has descended into the player zone
-        for enemy in list(self._sprite_list):  # type: ignore[attr-defined]
-            if enemy.bottom <= ship_zone_top:
-                events.append(GameEvent.PLAYER_KILLED)
-                return events  # no need to process further this frame
+        # Per-enemy bottom snap: if an enemy leaves the bottom of the window,
+        # teleport it directly to its spawn-time home position.
+        # Future diving recovery will reuse home_x/home_y with an animated path.
+        for enemy in self._sprite_list:  # type: ignore[attr-defined]
+            if enemy.bottom <= 0:
+                enemy.center_x = enemy.home_x
+                enemy.center_y = enemy.home_y
 
         # Update enemy bullets
         for bullet in list(self._bullet_list):  # type: ignore[attr-defined]
@@ -278,6 +287,7 @@ class EnemyGrid:
             row_off = self._row_offsets[sprite.row] if sprite.row < len(self._row_offsets) else 0.0
             enemies.append({
                 "pos": [sprite.center_x, sprite.center_y],
+                "home": [sprite.home_x, sprite.home_y],
                 "formation_pos": [
                     self._origin_x + col_off,
                     self._origin_y + row_off,
@@ -352,6 +362,9 @@ class EnemyGrid:
             pos = edata["pos"]
             sprite.center_x = float(pos[0])
             sprite.center_y = float(pos[1])
+            home = edata.get("home", pos)
+            sprite.home_x = float(home[0])
+            sprite.home_y = float(home[1])
             grid._sprite_list.append(sprite)
 
         # Projectiles are stripped by SAVE_SNAPSHOT_AND_SWITCH before storage,

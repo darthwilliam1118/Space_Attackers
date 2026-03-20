@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.arcade.academy)",
+      "WebSearch",
+      "Bash(venv/Scripts/python -m pytest tests/test_player_bullet.py::TestBulletMovement::test_delta_time_scaled -v)"
+    ]
+  }
+}

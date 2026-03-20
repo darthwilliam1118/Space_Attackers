@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Optional
 
 import arcade
@@ -38,7 +39,11 @@ class PlayerShip(arcade.Sprite):
         if texture is not None:
             super().__init__(texture)
         else:
-            super().__init__(resource_path(_SHIP_PATHS.get(player_num, _SHIP_PATHS[1])))
+            tex = arcade.load_texture(
+                resource_path(_SHIP_PATHS.get(player_num, _SHIP_PATHS[1])),
+                hit_box_algorithm=arcade.hitbox.algo_simple,
+            )
+            super().__init__(tex)
 
         self._player_num = player_num
         self._config = config
@@ -56,6 +61,13 @@ class PlayerShip(arcade.Sprite):
         self.center_x = window_width / 2.0
         self.center_y = zone_height / 2.0
 
+        # Momentum
+        self._vx: float = 0.0
+        self._vy: float = 0.0
+
+        # Tilt animation (degrees; negative = clockwise = lean right)
+        self._tilt_angle: float = 0.0
+
         # Fire cooldown
         self._fire_cooldown_remaining: float = 0.0
 
@@ -69,16 +81,42 @@ class PlayerShip(arcade.Sprite):
     # ------------------------------------------------------------------
 
     def apply_movement(self, keys_held: set[int], delta_time: float) -> None:
-        """Move ship based on *keys_held*, clamped to the movement zone."""
-        speed = self._config.ship_speed * delta_time
-        if arcade.key.LEFT in keys_held or arcade.key.A in keys_held:
-            self.center_x -= speed
-        if arcade.key.RIGHT in keys_held or arcade.key.D in keys_held:
-            self.center_x += speed
-        if arcade.key.UP in keys_held or arcade.key.W in keys_held:
-            self.center_y += speed
-        if arcade.key.DOWN in keys_held or arcade.key.S in keys_held:
-            self.center_y -= speed
+        """Update velocity with momentum, then move and clamp to zone."""
+        cfg = self._config
+        max_speed = cfg.ship_speed * 2.0
+        accel = cfg.ship_accel * delta_time
+        decel = cfg.ship_decel * delta_time
+
+        moving_left  = arcade.key.LEFT  in keys_held or arcade.key.A in keys_held
+        moving_right = arcade.key.RIGHT in keys_held or arcade.key.D in keys_held
+        moving_up    = arcade.key.UP    in keys_held or arcade.key.W in keys_held
+        moving_down  = arcade.key.DOWN  in keys_held or arcade.key.S in keys_held
+
+        # --- horizontal ---
+        if moving_left and not moving_right:
+            self._vx = max(self._vx - accel, -max_speed)
+        elif moving_right and not moving_left:
+            self._vx = min(self._vx + accel, max_speed)
+        else:
+            # decelerate toward zero
+            if self._vx > 0:
+                self._vx = max(0.0, self._vx - decel)
+            elif self._vx < 0:
+                self._vx = min(0.0, self._vx + decel)
+
+        # --- vertical ---
+        if moving_down and not moving_up:
+            self._vy = max(self._vy - accel, -max_speed)
+        elif moving_up and not moving_down:
+            self._vy = min(self._vy + accel, max_speed)
+        else:
+            if self._vy > 0:
+                self._vy = max(0.0, self._vy - decel)
+            elif self._vy < 0:
+                self._vy = min(0.0, self._vy + decel)
+
+        self.center_x += self._vx * delta_time
+        self.center_y += self._vy * delta_time
 
         # Clamp to zone.
         half_w = self.width / 2.0
@@ -86,8 +124,8 @@ class PlayerShip(arcade.Sprite):
         self.center_x = max(self._zone_left + half_w, min(self._zone_right - half_w, self.center_x))
         self.center_y = max(self._zone_bottom + half_h, min(self._zone_top - half_h, self.center_y))
 
-    def try_fire(self, window_height: int) -> Optional[PlayerBullet]:
-        """Return a PlayerBullet if the cooldown has expired, else None."""
+    def try_fire(self) -> Optional[PlayerBullet]:
+        """Return a PlayerBullet fired at the ship's current tilt angle, or None."""
         if self._fire_cooldown_remaining > 0.0:
             return None
         self._fire_cooldown_remaining = self._config.fire_cooldown
@@ -95,7 +133,9 @@ class PlayerShip(arcade.Sprite):
             x=self.center_x,
             y=self.center_y + self.height / 2.0,
             speed=self._config.bullet_speed,
-            window_height=window_height,
+            window_width=self._window_width,
+            window_height=self._window_height,
+            angle_deg=self._tilt_angle,
             player_num=self._player_num,
         )
 
@@ -120,7 +160,7 @@ class PlayerShip(arcade.Sprite):
         return explosion
 
     def update(self, delta_time: float = 1 / 60) -> None:  # type: ignore[override]
-        """Tick cooldown and invincibility timers."""
+        """Tick cooldown, invincibility timers, and tilt animation."""
         if self._fire_cooldown_remaining > 0.0:
             self._fire_cooldown_remaining = max(0.0, self._fire_cooldown_remaining - delta_time)
 
@@ -132,3 +172,18 @@ class PlayerShip(arcade.Sprite):
                 self.visible = not self.visible
             if self._invincible_remaining <= 0.0:
                 self.visible = True
+
+        self._update_tilt(delta_time)
+
+    def _update_tilt(self, delta_time: float) -> None:
+        """Step _tilt_angle toward the target derived from horizontal velocity."""
+        max_speed = self._config.ship_speed * 2.0
+        # Moving right → negative angle (clockwise lean); left → positive (CCW lean).
+        target = (self._vx / max_speed) * 45.0 if max_speed > 0 else 0.0
+        max_step = self._config.ship_tilt_rate * delta_time
+        diff = target - self._tilt_angle
+        if abs(diff) <= max_step:
+            self._tilt_angle = target
+        else:
+            self._tilt_angle += math.copysign(max_step, diff)
+        self.angle = self._tilt_angle

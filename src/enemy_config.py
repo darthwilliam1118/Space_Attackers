@@ -9,6 +9,7 @@ from dataclasses import dataclass
 class EnemyConfig:
     enemy_cols: int = 5
     enemy_rows: int = 4
+    enemy_col_width_factor: float = 1.1
     enemy_speed_initial: float = 80.0
     enemy_speed_max_bonus: float = 120.0
     enemy_speed_level_bonus: float = 15.0

@@ -27,7 +27,11 @@ class EnemyBullet(arcade.Sprite):
         if texture is not None:
             super().__init__(texture)
         else:
-            super().__init__(resource_path(_BULLET_PATH))
+            tex = arcade.load_texture(
+                resource_path(_BULLET_PATH),
+                hit_box_algorithm=arcade.hitbox.algo_simple,
+            )
+            super().__init__(tex)
         self.center_x = x
         self.center_y = y
         self._speed = speed

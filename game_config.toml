@@ -3,22 +3,26 @@ starting_level = 1
 num_lives = 3
 spawn_safe_radius = 80
 
+[ship]
+ship_speed = 300.0
+ship_accel = 1000.0
+ship_decel = 1200.0
+ship_tilt_rate = 90.0
+fire_cooldown = 0.1
+bullet_speed = 500.0
+spawn_invincible_duration = 2.0
+ship_zone_height_pct = 0.33
+explosion_frame_duration = 0.05
+
 [enemies]
 enemy_cols = 7
 enemy_rows = 4
-enemy_speed_initial = 30
-enemy_speed_max_bonus = 150
-enemy_speed_level_bonus = 15
-enemy_side_margin = 40
-enemy_drop_distance = 48
+enemy_col_width_factor = 1.2
+enemy_speed_initial = 30.0
+enemy_speed_max_bonus = 150.0
+enemy_speed_level_bonus = 15.0
+enemy_side_margin = 40.0
+enemy_drop_distance = 48.0
 enemy_fire_interval_min = 1.5
 enemy_fire_interval_max = 4.0
-enemy_bullet_speed = 250
-
-[ship]
-ship_speed = 300
-fire_cooldown = 0.3
-bullet_speed = 500
-spawn_invincible_duration = 2.0
-ship_zone_height_pct = 0.20
-explosion_frame_duration = 0.05
+enemy_bullet_speed = 250.0

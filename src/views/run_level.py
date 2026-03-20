@@ -121,13 +121,9 @@ class RunLevelView(arcade.View):
                         return
 
         # Enemy grid: movement, shooting, collision detection
-        cfg = self._manager.context.get("config")
-        zone_pct = cfg.ship.ship_zone_height_pct if cfg else 0.20
-        ship_zone_top = self.window.height * zone_pct
-
         # Collisions are skipped while player is invincible
         collision_target = self._ship if not self._ship.is_invincible() else None
-        events = self._grid.update(delta_time, collision_target, ship_zone_top)
+        events = self._grid.update(delta_time, collision_target)
 
         for event in events:
             if event == GameEvent.PLAYER_KILLED:
@@ -172,7 +168,7 @@ class RunLevelView(arcade.View):
     def _fire(self) -> None:
         if self._ship is None:
             return
-        bullet = self._ship.try_fire(self.window.height)
+        bullet = self._ship.try_fire()
         if bullet is not None:
             self._player_bullets.append(bullet)
 

@@ -35,6 +35,9 @@ class GameConfig:
         ship = data.get("ship", {})
         sc = ShipConfig(
             ship_speed=float(ship.get("ship_speed", ShipConfig.ship_speed)),
+            ship_accel=float(ship.get("ship_accel", ShipConfig.ship_accel)),
+            ship_decel=float(ship.get("ship_decel", ShipConfig.ship_decel)),
+            ship_tilt_rate=float(ship.get("ship_tilt_rate", ShipConfig.ship_tilt_rate)),
             fire_cooldown=float(ship.get("fire_cooldown", ShipConfig.fire_cooldown)),
             bullet_speed=float(ship.get("bullet_speed", ShipConfig.bullet_speed)),
             spawn_invincible_duration=float(
@@ -51,6 +54,7 @@ class GameConfig:
         ec = EnemyConfig(
             enemy_cols=int(ec_raw.get("enemy_cols", EnemyConfig.enemy_cols)),
             enemy_rows=int(ec_raw.get("enemy_rows", EnemyConfig.enemy_rows)),
+            enemy_col_width_factor=float(ec_raw.get("enemy_col_width_factor", EnemyConfig.enemy_col_width_factor)),
             enemy_speed_initial=float(ec_raw.get("enemy_speed_initial", EnemyConfig.enemy_speed_initial)),
             enemy_speed_max_bonus=float(ec_raw.get("enemy_speed_max_bonus", EnemyConfig.enemy_speed_max_bonus)),
             enemy_speed_level_bonus=float(ec_raw.get("enemy_speed_level_bonus", EnemyConfig.enemy_speed_level_bonus)),
@@ -78,6 +82,9 @@ class GameConfig:
             f"spawn_safe_radius = {self.spawn_safe_radius}\n",
             "\n[ship]\n",
             f"ship_speed = {sc.ship_speed}\n",
+            f"ship_accel = {sc.ship_accel}\n",
+            f"ship_decel = {sc.ship_decel}\n",
+            f"ship_tilt_rate = {sc.ship_tilt_rate}\n",
             f"fire_cooldown = {sc.fire_cooldown}\n",
             f"bullet_speed = {sc.bullet_speed}\n",
             f"spawn_invincible_duration = {sc.spawn_invincible_duration}\n",
@@ -89,6 +96,7 @@ class GameConfig:
             "\n[enemies]\n",
             f"enemy_cols = {ec.enemy_cols}\n",
             f"enemy_rows = {ec.enemy_rows}\n",
+            f"enemy_col_width_factor = {ec.enemy_col_width_factor}\n",
             f"enemy_speed_initial = {ec.enemy_speed_initial}\n",
             f"enemy_speed_max_bonus = {ec.enemy_speed_max_bonus}\n",
             f"enemy_speed_level_bonus = {ec.enemy_speed_level_bonus}\n",

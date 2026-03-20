@@ -1,7 +1,8 @@
-"""PlayerBullet — upward-travelling laser fired by the player ship."""
+"""PlayerBullet — laser fired by the player ship at the ship's current tilt angle."""
 
 from __future__ import annotations
 
+import math
 from typing import Optional
 
 import arcade
@@ -21,9 +22,11 @@ def bullet_path_for(player_num: int) -> str:
 
 
 class PlayerBullet(arcade.Sprite):
-    """Moves straight up at a fixed speed; removes itself when off-screen.
+    """Travels in the direction of the ship's tilt; removes itself on any screen edge.
 
-    Pass *texture* to inject a pre-loaded texture (tests, no display needed).
+    *angle_deg* follows the ship's tilt convention: positive = right of vertical,
+    negative = left of vertical.  Pass *texture* to inject a pre-loaded texture
+    (tests, no display needed).
     """
 
     def __init__(
@@ -31,20 +34,39 @@ class PlayerBullet(arcade.Sprite):
         x: float,
         y: float,
         speed: float,
+        window_width: int,
         window_height: int,
+        angle_deg: float = 0.0,
         player_num: int = 1,
         texture: Optional[arcade.Texture] = None,
     ) -> None:
         if texture is not None:
             super().__init__(texture)
         else:
-            super().__init__(resource_path(bullet_path_for(player_num)))
+            tex = arcade.load_texture(
+                resource_path(bullet_path_for(player_num)),
+                hit_box_algorithm=arcade.hitbox.algo_simple,
+            )
+            super().__init__(tex)
         self.center_x = x
         self.center_y = y
-        self._speed = speed
+        self.angle = angle_deg
+        self._window_width = window_width
         self._window_height = window_height
 
+        # Decompose speed into x/y components.
+        # angle_deg=0 → straight up; positive → right of vertical.
+        rad = math.radians(angle_deg)
+        self._vx = speed * math.sin(rad)
+        self._vy = speed * math.cos(rad)
+
     def update(self, delta_time: float = 1 / 60) -> None:  # type: ignore[override]
-        self.center_y += self._speed * delta_time
-        if self.center_y > self._window_height:
+        self.center_x += self._vx * delta_time
+        self.center_y += self._vy * delta_time
+        if (
+            self.center_y > self._window_height
+            or self.center_y < 0
+            or self.center_x > self._window_width
+            or self.center_x < 0
+        ):
             self.remove_from_sprite_lists()

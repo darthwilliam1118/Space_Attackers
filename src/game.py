@@ -22,7 +22,7 @@ class GameWindow(arcade.Window):
 
     def __init__(self) -> None:
         w, h = _window_size()
-        super().__init__(w, h, SCREEN_TITLE)
+        super().__init__(w, h, SCREEN_TITLE, center_window=True)
         arcade.set_background_color(arcade.color.BLACK)
         self._manager = GameStateManager(self)
         self._manager.transition(GameState.SPLASH)
