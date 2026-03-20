@@ -11,6 +11,7 @@ class EnemyConfig:
     enemy_rows: int = 4
     enemy_speed_initial: float = 80.0
     enemy_speed_max_bonus: float = 120.0
+    enemy_speed_level_bonus: float = 15.0
     enemy_side_margin: float = 40.0
     enemy_drop_distance: float = 48.0
     enemy_fire_interval_min: float = 1.5

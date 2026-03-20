@@ -214,11 +214,12 @@ class TestSpeedScaling:
         assert g._speed == pytest.approx(200.0)
 
     def test_speed_at_50pct_destruction(self) -> None:
+        # sqrt(0.5) curve: 80 + sqrt(0.5) * 120 ≈ 164.85
         g = _grid(enemy_speed_initial=80, enemy_speed_max_bonus=120,
                   enemy_cols=4, enemy_rows=1)
         g._enemies_destroyed = g._total_enemies // 2
         g.recalculate_speed()
-        assert g._speed == pytest.approx(140.0)
+        assert g._speed == pytest.approx(80.0 + (0.5 ** 0.5) * 120.0)
 
 
 # ---------------------------------------------------------------------------

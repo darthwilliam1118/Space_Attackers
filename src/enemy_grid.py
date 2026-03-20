@@ -44,6 +44,7 @@ class EnemyGrid:
         self._origin_y: float = 0.0
 
         self._direction: float = 1.0          # 1 = right, -1 = left
+        self._level: int = 1
         self._speed: float = config.enemy_speed_initial
         self._total_enemies: int = 0
         self._enemies_destroyed: int = 0
@@ -58,8 +59,9 @@ class EnemyGrid:
     # Setup / spawn
     # ------------------------------------------------------------------
 
-    def setup(self, level: int) -> None:  # noqa: ARG002  (level reserved for future use)
+    def setup(self, level: int) -> None:
         """Spawn a fresh enemy formation."""
+        self._level = level
         cfg = self._config
         w, h = self._window_width, self._window_height
         margin = cfg.enemy_side_margin
@@ -84,7 +86,7 @@ class EnemyGrid:
         self._sprite_list = arcade.SpriteList(use_spatial_hash=True)
         self._total_enemies = cfg.enemy_cols * cfg.enemy_rows
         self._enemies_destroyed = 0
-        self._speed = cfg.enemy_speed_initial
+        self.recalculate_speed()  # sets initial speed for this level
 
         for row in range(cfg.enemy_rows):
             color, ship_type = ROW_MAPPING[row % 5]
@@ -235,9 +237,15 @@ class EnemyGrid:
     # ------------------------------------------------------------------
 
     def recalculate_speed(self) -> None:
+        """speed = (initial + (level-1) × level_bonus) + sqrt(kill_pct) × max_bonus.
+
+        Square-root curve: gives a noticeable jump on the first kill and
+        keeps accelerating through the last enemy, matching classic feel.
+        """
         cfg = self._config
+        level_floor = cfg.enemy_speed_initial + (self._level - 1) * cfg.enemy_speed_level_bonus
         pct = self._enemies_destroyed / max(self._total_enemies, 1)
-        self._speed = cfg.enemy_speed_initial + pct * cfg.enemy_speed_max_bonus
+        self._speed = level_floor + (pct ** 0.5) * cfg.enemy_speed_max_bonus
 
     def check_boundary(self) -> None:
         """Bounce off margins using the outermost *surviving* enemy."""
@@ -286,6 +294,7 @@ class EnemyGrid:
         ]
         return {
             "enemies": enemies,
+            "level": self._level,
             "direction": self._direction,
             "speed": self._speed,
             "shoot_timers": dict(self._shoot_timers),
@@ -314,6 +323,7 @@ class EnemyGrid:
         calling this (done by apply_spawn_safety() in START_LEVEL).
         """
         grid = cls(config, window_width, window_height, enemy_texture, bullet_texture)
+        grid._level = int(snapshot.get("level", 1))
         grid._direction = float(snapshot.get("direction", 1.0))
         grid._speed = float(snapshot.get("speed", config.enemy_speed_initial))
         grid._origin_x = float(snapshot.get("origin_x", 0.0))
