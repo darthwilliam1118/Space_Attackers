@@ -7,12 +7,12 @@ import pytest
 from src.background import ProceduralStarField
 
 W, H = 800, 600
-_SENTINEL = object()  # passed as _shape_list to skip OpenGL init
+_SENTINEL = object()  # passed as _sprites to skip OpenGL init
 
 
 def _make(star_count: int = 20, speed_min: float = 20.0, speed_max: float = 120.0) -> ProceduralStarField:
     return ProceduralStarField(W, H, star_count=star_count, speed_min=speed_min,
-                               speed_max=speed_max, _shape_list=_SENTINEL)
+                               speed_max=speed_max, _sprites=_SENTINEL)
 
 
 class TestInit:
@@ -35,7 +35,6 @@ class TestInit:
 class TestUpdate:
     def test_moves_stars_downward(self) -> None:
         sf = _make(star_count=5)
-        # Pin all speeds to a known value and all y far from edges
         for i in range(5):
             sf._speed_list[i] = 100.0
             sf._y[i] = 300.0
@@ -47,7 +46,6 @@ class TestUpdate:
 
     def test_stars_wrap_at_bottom(self) -> None:
         sf = _make(star_count=3)
-        # Place one star just above zero, fast enough to cross in one step
         sf._y[0] = 1.0
         sf._speed_list[0] = 500.0
 
@@ -57,17 +55,13 @@ class TestUpdate:
 
     def test_wrapped_star_gets_new_x(self) -> None:
         sf = _make(star_count=3)
-        sf._y[0] = 1.0
-        sf._speed_list[0] = 500.0
-        # Run many times; x should not be stuck at the original value every time
-        original_x = sf._x[0]
         new_xs: set[float] = set()
         for _ in range(20):
-            sf._y[0] = 1.0  # force wrap every iteration
+            sf._y[0] = 1.0
             sf.update(0.1)
             new_xs.add(sf._x[0])
-        # At least one new x should differ from the original
-        assert any(x != pytest.approx(original_x) for x in new_xs)
+        # Randomness means we should see more than one distinct x value
+        assert len(new_xs) > 1
 
     def test_wrapped_x_stays_within_window(self) -> None:
         sf = _make(star_count=1)
@@ -91,30 +85,14 @@ class TestUpdate:
         drop2 = 500.0 - sf2._y[0]
         assert drop2 == pytest.approx(2 * drop1)
 
-
-class TestRebuild:
-    def test_rebuild_called_on_wrap(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        sf = _make(star_count=3)
+    def test_non_wrapping_stars_unaffected_by_others(self) -> None:
+        sf = _make(star_count=2)
         sf._y[0] = 1.0
-        sf._speed_list[0] = 500.0
+        sf._speed_list[0] = 500.0  # will wrap
+        sf._y[1] = 400.0
+        sf._speed_list[1] = 10.0   # will not wrap
 
-        calls: list[int] = []
-        monkeypatch.setattr(sf, "_rebuild", lambda: calls.append(1))
+        sf.update(0.1)
 
-        sf.update(0.1)  # star 0 wraps
-
-        assert calls, "_rebuild should have been called on wrap"
-
-    def test_rebuild_not_called_without_wrap(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        sf = _make(star_count=5)
-        # Push all stars safely away from the bottom
-        for i in range(5):
-            sf._y[i] = 400.0
-            sf._speed_list[i] = 10.0  # slow — won't reach 0 in 0.01s
-
-        calls: list[int] = []
-        monkeypatch.setattr(sf, "_rebuild", lambda: calls.append(1))
-
-        sf.update(0.01)
-
-        assert not calls, "_rebuild should not be called when no star wraps"
+        assert sf._y[0] == pytest.approx(float(H))  # wrapped
+        assert sf._y[1] == pytest.approx(400.0 - 10.0 * 0.1)  # just moved
