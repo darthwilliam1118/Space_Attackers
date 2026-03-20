@@ -1,5 +1,8 @@
 import pyglet
 import arcade
+from src.background import ProceduralStarField, StaticBackground
+from src.game_config import GameConfig
+from src.paths import resource_path
 from src.state import GameState, GameStateManager
 
 SCREEN_TITLE = "Space Attackers"
@@ -24,6 +27,12 @@ class GameWindow(arcade.Window):
         w, h = _window_size()
         super().__init__(w, h, SCREEN_TITLE, center_window=True)
         arcade.set_background_color(arcade.color.BLACK)
+        arcade.load_font(resource_path("assets/fonts/kenvector_future.ttf"))
+        arcade.load_font(resource_path("assets/fonts/kenvector_future_thin.ttf"))
+        cfg = GameConfig.load()
+        bg = cfg.background
+        self.background = StaticBackground(bg.background_image, w, h)
+        self.star_field = ProceduralStarField(w, h, bg.star_count, bg.star_speed_min, bg.star_speed_max)
         self._manager = GameStateManager(self)
         self._manager.transition(GameState.SPLASH)
 

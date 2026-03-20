@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import arcade
 
 if TYPE_CHECKING:
     from src.state import GameStateManager
+
+from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
 
 _DISPLAY_DURATION = 5.0
 
@@ -20,7 +22,22 @@ class ScoreEntryView(arcade.View):
         self._manager = manager
         self._elapsed: float = 0.0
 
+        self._title_text: Optional[arcade.Text] = None
+        self._subtitle_text: Optional[arcade.Text] = None
+
+    def on_show_view(self) -> None:
+        w, h = self.window.width, self.window.height
+        self._title_text = centered_text(
+            "HIGH SCORES", w, h // 2 + 20,
+            font_size=52, color=arcade.color.GOLD, font_name=FONT_MAIN, bold=True,
+        )
+        self._subtitle_text = centered_text(
+            "(full leaderboard coming soon)", w, h // 2 - 40,
+            font_size=16, color=(180, 180, 180, 255), font_name=FONT_THIN,
+        )
+
     def on_update(self, delta_time: float) -> None:
+        self.window.star_field.update(delta_time)  # type: ignore[attr-defined]
         self._elapsed += delta_time
         if self._elapsed >= _DISPLAY_DURATION:
             from src.state import GameState
@@ -28,24 +45,9 @@ class ScoreEntryView(arcade.View):
 
     def on_draw(self) -> None:
         self.clear()
-        width = self.window.width
-        height = self.window.height
-
-        arcade.draw_text(
-            "HIGH SCORES",
-            width / 2,
-            height / 2 + 20,
-            arcade.color.GOLD,
-            font_size=52,
-            anchor_x="center",
-            bold=True,
-        )
-
-        arcade.draw_text(
-            "(full leaderboard coming soon)",
-            width / 2,
-            height / 2 - 40,
-            arcade.color.LIGHT_GRAY,
-            font_size=16,
-            anchor_x="center",
-        )
+        self.window.background.draw()  # type: ignore[attr-defined]
+        self.window.star_field.draw()  # type: ignore[attr-defined]
+        if self._title_text:
+            self._title_text.draw()
+        if self._subtitle_text:
+            self._subtitle_text.draw()

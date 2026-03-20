@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import arcade
 
 if TYPE_CHECKING:
     from src.state import GameStateManager
+
+from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
 
 
 class SplashView(arcade.View):
@@ -22,8 +24,22 @@ class SplashView(arcade.View):
         super().__init__()
         self._manager = manager
         self._elapsed: float = 0.0
+        self._title_text: Optional[arcade.Text] = None
+        self._prompt_text: Optional[arcade.Text] = None
+
+    def on_show_view(self) -> None:
+        w, h = self.window.width, self.window.height
+        self._title_text = centered_text(
+            self.TITLE, w, h // 2 + 40,
+            font_size=64, color=arcade.color.YELLOW, font_name=FONT_MAIN, bold=True,
+        )
+        self._prompt_text = centered_text(
+            self.PROMPT, w, 40,
+            font_size=18, color=arcade.color.WHITE, font_name=FONT_THIN,
+        )
 
     def on_update(self, delta_time: float) -> None:
+        self.window.star_field.update(delta_time)  # type: ignore[attr-defined]
         self._elapsed += delta_time
         if self._elapsed >= self._AUTO_ADVANCE:
             self._go_to_main()
@@ -34,29 +50,12 @@ class SplashView(arcade.View):
 
     def on_draw(self) -> None:
         self.clear()
-        width = self.window.width
-        height = self.window.height
-
-        arcade.draw_text(
-            self.TITLE,
-            width / 2,
-            height / 2 + 40,
-            arcade.color.YELLOW,
-            font_size=64,
-            anchor_x="center",
-            anchor_y="center",
-            bold=True,
-        )
-
-        arcade.draw_text(
-            self.PROMPT,
-            width / 2,
-            40,
-            arcade.color.WHITE,
-            font_size=18,
-            anchor_x="center",
-            anchor_y="center",
-        )
+        self.window.background.draw()  # type: ignore[attr-defined]
+        self.window.star_field.draw()  # type: ignore[attr-defined]
+        if self._title_text:
+            self._title_text.draw()
+        if self._prompt_text:
+            self._prompt_text.draw()
 
     def on_key_press(self, key: int, modifiers: int) -> None:
         self._go_to_main()

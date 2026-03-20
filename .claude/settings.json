@@ -3,7 +3,13 @@
     "allow": [
       "WebFetch(domain:api.arcade.academy)",
       "WebSearch",
-      "Bash(venv/Scripts/python -m pytest tests/test_player_bullet.py::TestBulletMovement::test_delta_time_scaled -v)"
+      "Bash(venv/Scripts/python -m pytest tests/test_player_bullet.py::TestBulletMovement::test_delta_time_scaled -v)",
+      "Bash(python -m pytest tests/test_background.py -v)",
+      "Bash(python -c \"import arcade; print\\([x for x in dir\\(arcade\\) if ''shape'' in x.lower\\(\\) or ''Shape'' in x]\\)\")",
+      "Bash(python -c \"import arcade.shape_list as sl; print\\(dir\\(sl\\)\\)\")",
+      "Bash(python -c \"from arcade.shape_list import ShapeElementList; sl = ShapeElementList\\(\\); print\\(''ok''\\)\")",
+      "Bash(python -m pytest --cov=src -q)",
+      "Bash(python -c \":*)"
     ]
   }
 }

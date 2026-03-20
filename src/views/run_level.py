@@ -14,6 +14,8 @@ from src.game_event import GameEvent
 from src.ship_config import ShipConfig
 from src.sprites.explosion import ExplosionSprite
 from src.sprites.player_ship import PlayerShip
+from src.ui.hud import HUD
+from src.ui.text_utils import FONT_THIN, centered_text
 
 
 class RunLevelView(arcade.View):
@@ -22,7 +24,7 @@ class RunLevelView(arcade.View):
     Drives input, movement, collision detection, and rendering.
     Transitions via GameStateManager — never called from EnemyGrid directly.
 
-    Debug shortcuts (# DEBUG):
+    Debug shortcuts (active only when config.debug is True):
       Shift+E — instantly clear all enemies → LEVEL_COMPLETE
     """
 
@@ -40,6 +42,10 @@ class RunLevelView(arcade.View):
         self._dying: bool = False
         self._death_explosion: Optional[ExplosionSprite] = None
         self._level_cleared: bool = False
+
+        self._hud: Optional[HUD] = None
+        self._debug_text: Optional[arcade.Text] = None
+        self._debug: bool = False
 
         self._setup()
 
@@ -64,6 +70,7 @@ class RunLevelView(arcade.View):
         )
         self._ship_list.append(self._ship)
         self._grid = ctx.get("enemy_grid")
+        self._debug = cfg.debug if cfg else False
 
     # ------------------------------------------------------------------
     # Arcade callbacks
@@ -71,9 +78,24 @@ class RunLevelView(arcade.View):
 
     def on_show_view(self) -> None:
         arcade.set_background_color(arcade.color.BLACK)
+        ctx = self._manager.context
+        players = ctx.get("players", [])
+        num_players = len(players)
+        self._hud = HUD(self.window.width, self.window.height, num_players)
+        if self._debug:
+            self._debug_text = centered_text(
+                "Shift+E = Clear enemies",
+                self.window.width,
+                self.window.height - 20,
+                font_size=11,
+                color=(80, 80, 80, 255),
+                font_name=FONT_THIN,
+            )
 
     def on_update(self, delta_time: float) -> None:
         from src.state import GameState
+
+        self.window.star_field.update(delta_time)  # type: ignore[attr-defined]
 
         # Death explosion plays out before transitioning
         if self._dying:
@@ -88,6 +110,14 @@ class RunLevelView(arcade.View):
 
         self._ship.apply_movement(self._keys_held, delta_time)
         self._ship.update(delta_time)
+
+        # Update HUD
+        if self._hud is not None:
+            ctx = self._manager.context
+            players = ctx.get("players", [])
+            idx = ctx.get("active_player_index", 0)
+            level = players[idx].current_level if players else 1
+            self._hud.update(players, idx, level)
 
         # Update non-enemy explosions (enemy hit effects)
         for exp in list(self._explosions):
@@ -135,7 +165,8 @@ class RunLevelView(arcade.View):
 
     def on_draw(self) -> None:
         self.clear()
-        self._draw_hud()
+        self.window.background.draw()  # type: ignore[attr-defined]
+        self.window.star_field.draw()  # type: ignore[attr-defined]
 
         if self._grid is not None:
             self._grid.get_sprite_list().draw()
@@ -145,13 +176,18 @@ class RunLevelView(arcade.View):
         self._ship_list.draw()
         self._explosions.draw()
 
+        if self._hud is not None:
+            self._hud.draw()
+
+        if self._debug and self._debug_text is not None:
+            self._debug_text.draw()
+
     def on_key_press(self, key: int, modifiers: int) -> None:
         from src.state import GameState
 
-        # DEBUG: Shift+E = instantly advance to LEVEL_COMPLETE
-        if key == arcade.key.E and (modifiers & arcade.key.MOD_SHIFT):  # DEBUG
-            self._manager.transition(GameState.LEVEL_COMPLETE)  # DEBUG
-            return  # DEBUG
+        if self._debug and key == arcade.key.E and (modifiers & arcade.key.MOD_SHIFT):
+            self._manager.transition(GameState.LEVEL_COMPLETE)
+            return
 
         self._keys_held.add(key)
 
@@ -182,44 +218,6 @@ class RunLevelView(arcade.View):
         self._explosions.append(explosion)
         self._ship = None
         self._ship_list.clear()
-
-    def _draw_hud(self) -> None:
-        """Player 1 score top-left, Player 2 score top-right."""
-        players = self._manager.context.get("players", [])
-        w = self.window.width
-        h = self.window.height
-
-        for player in players:
-            if player.player_num == 1:
-                arcade.draw_text(
-                    f"P1  {player.score:06d}  Lv{player.current_level}  x{player.lives}",
-                    10,
-                    h - 20,
-                    arcade.color.WHITE,
-                    font_size=14,
-                    anchor_x="left",
-                    anchor_y="center",
-                )
-            elif player.player_num == 2:
-                arcade.draw_text(
-                    f"P2  {player.score:06d}  Lv{player.current_level}  x{player.lives}",
-                    w - 10,
-                    h - 20,
-                    arcade.color.WHITE,
-                    font_size=14,
-                    anchor_x="right",
-                    anchor_y="center",
-                )
-
-        arcade.draw_text(
-            "Shift+E = Clear enemies",  # DEBUG
-            w / 2,
-            h - 20,
-            arcade.color.DARK_GRAY,
-            font_size=11,
-            anchor_x="center",
-            anchor_y="center",
-        )
 
     def _update_score(self, points: int) -> None:
         players = self._manager.context.get("players", [])

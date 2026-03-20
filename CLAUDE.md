@@ -16,6 +16,15 @@
 - Tests in tests/
 - Assets in assets/images/ and assets/sounds/
 
+## Feature Brief Index
+- Background / star field: docs/features/background.md
+- Particle effects:        docs/features/particles.md
+- Text and HUD:            docs/features/text-and-hud.md
+- Score popups:            docs/features/score-popup.md
+- Player ship:             docs/features/player_ship.md
+- Enemy grid:              docs/features/enemy_grid.md
+- State machine:           docs/features/state_machine.md
+
 ## Testing
 - Use pytest
 - All logic classes must be instantiatable without a game window

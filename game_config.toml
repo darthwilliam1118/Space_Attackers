@@ -2,6 +2,7 @@
 starting_level = 1
 num_lives = 3
 spawn_safe_radius = 80
+debug = false
 
 [ship]
 ship_speed = 300.0
@@ -13,6 +14,12 @@ bullet_speed = 500.0
 spawn_invincible_duration = 2.0
 ship_zone_height_pct = 0.33
 explosion_frame_duration = 0.05
+
+[background]
+background_image = "assets/images/Backgrounds/darkPurple.png"
+star_count = 300
+star_speed_min = 20.0
+star_speed_max = 120.0
 
 [enemies]
 enemy_cols = 7

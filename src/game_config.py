@@ -6,6 +6,7 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.background_config import BackgroundConfig
 from src.enemy_config import EnemyConfig
 from src.ship_config import ShipConfig
 
@@ -17,14 +18,18 @@ class GameConfig:
     starting_level: int = 1
     num_lives: int = 3
     spawn_safe_radius: int = 80
+    debug: bool = False
     ship: ShipConfig = None  # type: ignore[assignment]
     enemies: EnemyConfig = None  # type: ignore[assignment]
+    background: BackgroundConfig = None  # type: ignore[assignment]
 
     def __post_init__(self) -> None:
         if self.ship is None:
             self.ship = ShipConfig()
         if self.enemies is None:
             self.enemies = EnemyConfig()
+        if self.background is None:
+            self.background = BackgroundConfig()
 
     @classmethod
     def load(cls, path: Path = _DEFAULT_PATH) -> "GameConfig":
@@ -64,12 +69,21 @@ class GameConfig:
             enemy_fire_interval_max=float(ec_raw.get("enemy_fire_interval_max", EnemyConfig.enemy_fire_interval_max)),
             enemy_bullet_speed=float(ec_raw.get("enemy_bullet_speed", EnemyConfig.enemy_bullet_speed)),
         )
+        bg_raw = data.get("background", {})
+        bc = BackgroundConfig(
+            background_image=str(bg_raw.get("background_image", BackgroundConfig.background_image)),
+            star_count=int(bg_raw.get("star_count", BackgroundConfig.star_count)),
+            star_speed_min=float(bg_raw.get("star_speed_min", BackgroundConfig.star_speed_min)),
+            star_speed_max=float(bg_raw.get("star_speed_max", BackgroundConfig.star_speed_max)),
+        )
         return cls(
             starting_level=int(game.get("starting_level", cls.starting_level)),
             num_lives=int(game.get("num_lives", cls.num_lives)),
             spawn_safe_radius=int(game.get("spawn_safe_radius", cls.spawn_safe_radius)),
+            debug=bool(game.get("debug", cls.debug)),
             ship=sc,
             enemies=ec,
+            background=bc,
         )
 
     def save(self, path: Path = _DEFAULT_PATH) -> None:
@@ -80,6 +94,7 @@ class GameConfig:
             f"starting_level = {self.starting_level}\n",
             f"num_lives = {self.num_lives}\n",
             f"spawn_safe_radius = {self.spawn_safe_radius}\n",
+            f"debug = {'true' if self.debug else 'false'}\n",
             "\n[ship]\n",
             f"ship_speed = {sc.ship_speed}\n",
             f"ship_accel = {sc.ship_accel}\n",
@@ -90,6 +105,14 @@ class GameConfig:
             f"spawn_invincible_duration = {sc.spawn_invincible_duration}\n",
             f"ship_zone_height_pct = {sc.ship_zone_height_pct}\n",
             f"explosion_frame_duration = {sc.explosion_frame_duration}\n",
+        ]
+        bg = self.background
+        lines += [
+            "\n[background]\n",
+            f'background_image = "{bg.background_image}"\n',
+            f"star_count = {bg.star_count}\n",
+            f"star_speed_min = {bg.star_speed_min}\n",
+            f"star_speed_max = {bg.star_speed_max}\n",
         ]
         ec = self.enemies
         lines += [
