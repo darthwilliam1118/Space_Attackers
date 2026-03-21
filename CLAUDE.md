@@ -127,6 +127,7 @@ Always use the 3.x API. Key breaking changes to be aware of:
 - Explosions are self-contained AnimatedSprite subclasses that call
   remove_from_sprite_lists() on final frame — no external tracking needed
 - Add an "explosions" layer to Scene so they render above enemies and bullets
+- All game animations and sounds should continue for a max of 2 seconds when PLAYER_KILLED including background, explosions, bullets and missiles.
 
 ## Fonts
 - Load TTF fonts once at startup via arcade.load_font(resource_path(...))
@@ -134,6 +135,14 @@ Always use the 3.x API. Key breaking changes to be aware of:
 - Font name in arcade.Text is the font's internal name, not the filename
 - KenVector Future and KenVector Future Thin are the target fonts for all game UI
   and are located in assets/fonts
+
+## Arcade Performance Gotchas
+- ShapeElementList is for STATIC geometry only — never use it for objects
+  that move every frame. It requires a full GPU buffer rebuild on any
+  change, causing microstutters. Use SpriteList instead.
+- ProceduralStarField uses SpriteList with arcade.make_circle_texture()
+  sprites — NOT ShapeElementList. Speeds stored in a parallel list since
+  SpriteList doesn't support per-sprite metadata.
 
 ## Build
 - Target: self-contained Windows .exe via PyInstaller

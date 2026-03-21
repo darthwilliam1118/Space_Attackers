@@ -33,3 +33,17 @@ enemy_drop_distance = 48.0
 enemy_fire_interval_min = 1.5
 enemy_fire_interval_max = 4.0
 enemy_bullet_speed = 250.0
+
+[particles]
+particle_count = 20
+particle_speed_min = 50.0
+particle_speed_max = 200.0
+particle_lifetime_min = 0.8
+particle_lifetime_max = 1.5
+particle_gravity = 150.0
+shockwave_duration = 0.3
+shockwave_max_scale = 2.5
+
+[ui]
+popup_duration = 0.8
+popup_rise_speed = 60.0

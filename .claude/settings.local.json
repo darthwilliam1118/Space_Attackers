@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(venv/Scripts/python -m pytest --cov=src -v)",
-      "Bash(venv/Scripts/python -m pytest --cov=src -q)"
+      "Bash(venv/Scripts/python -m pytest --cov=src -q)",
+      "Bash(python:*)"
     ]
   }
 }

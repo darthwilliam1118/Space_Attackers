@@ -26,10 +26,14 @@ class ExplosionSprite(arcade.Sprite):
         y: float,
         frame_duration: float = 0.05,
         frames: Optional[list[arcade.Texture]] = None,
+        vx: float = 0.0,
+        vy: float = 0.0,
     ) -> None:
         super().__init__()
         self.center_x = x
         self.center_y = y
+        self._vx = vx
+        self._vy = vy
         self._frame_duration = frame_duration
         self._elapsed: float = 0.0
         self._complete: bool = False
@@ -85,6 +89,8 @@ class ExplosionSprite(arcade.Sprite):
     def update(self, delta_time: float = 1 / 60) -> None:  # type: ignore[override]
         if self._complete:
             return
+        self.center_x += self._vx * delta_time
+        self.center_y += self._vy * delta_time
         self._elapsed += delta_time
         if self._elapsed >= self._frame_duration:
             self._elapsed -= self._frame_duration

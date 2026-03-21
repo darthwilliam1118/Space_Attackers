@@ -232,6 +232,11 @@ class EnemyGrid:
                 bottom[col] = sprite
         return bottom
 
+    @property
+    def velocity(self) -> tuple[float, float]:
+        """Current horizontal velocity of the grid for momentum transfer."""
+        return (self._direction * self._speed, 0.0)
+
     def is_cleared(self) -> bool:
         return len(self._sprite_list) == 0
 

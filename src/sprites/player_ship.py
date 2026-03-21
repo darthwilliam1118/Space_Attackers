@@ -145,16 +145,23 @@ class PlayerShip(arcade.Sprite):
         self._flash_timer = 0.0
         self.visible = True
 
+    @property
+    def velocity(self) -> tuple[float, float]:
+        """Current velocity for momentum transfer to destruction effects."""
+        return (self._vx, self._vy)
+
     def is_invincible(self) -> bool:
         """True while invincibility frames are active."""
         return self._invincible_remaining > 0.0
 
-    def kill(self) -> ExplosionSprite:  # type: ignore[override]
+    def kill(self, vx: float = 0.0, vy: float = 0.0) -> ExplosionSprite:  # type: ignore[override]
         """Remove ship and return an ExplosionSprite at this position."""
         explosion = ExplosionSprite(
             x=self.center_x,
             y=self.center_y,
             frame_duration=self._config.explosion_frame_duration,
+            vx=vx,
+            vy=vy,
         )
         self.remove_from_sprite_lists()
         return explosion

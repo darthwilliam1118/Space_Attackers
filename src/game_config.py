@@ -8,7 +8,9 @@ from pathlib import Path
 
 from src.background_config import BackgroundConfig
 from src.enemy_config import EnemyConfig
+from src.particles_config import ParticlesConfig
 from src.ship_config import ShipConfig
+from src.ui_config import UIConfig
 
 _DEFAULT_PATH = Path(__file__).parent.parent / "game_config.toml"
 
@@ -22,6 +24,8 @@ class GameConfig:
     ship: ShipConfig = None  # type: ignore[assignment]
     enemies: EnemyConfig = None  # type: ignore[assignment]
     background: BackgroundConfig = None  # type: ignore[assignment]
+    particles: ParticlesConfig = None  # type: ignore[assignment]
+    ui: UIConfig = None  # type: ignore[assignment]
 
     def __post_init__(self) -> None:
         if self.ship is None:
@@ -30,6 +34,10 @@ class GameConfig:
             self.enemies = EnemyConfig()
         if self.background is None:
             self.background = BackgroundConfig()
+        if self.particles is None:
+            self.particles = ParticlesConfig()
+        if self.ui is None:
+            self.ui = UIConfig()
 
     @classmethod
     def load(cls, path: Path = _DEFAULT_PATH) -> "GameConfig":
@@ -76,6 +84,22 @@ class GameConfig:
             star_speed_min=float(bg_raw.get("star_speed_min", BackgroundConfig.star_speed_min)),
             star_speed_max=float(bg_raw.get("star_speed_max", BackgroundConfig.star_speed_max)),
         )
+        pc_raw = data.get("particles", {})
+        pc = ParticlesConfig(
+            particle_count=int(pc_raw.get("particle_count", ParticlesConfig.particle_count)),
+            particle_speed_min=float(pc_raw.get("particle_speed_min", ParticlesConfig.particle_speed_min)),
+            particle_speed_max=float(pc_raw.get("particle_speed_max", ParticlesConfig.particle_speed_max)),
+            particle_lifetime_min=float(pc_raw.get("particle_lifetime_min", ParticlesConfig.particle_lifetime_min)),
+            particle_lifetime_max=float(pc_raw.get("particle_lifetime_max", ParticlesConfig.particle_lifetime_max)),
+            particle_gravity=float(pc_raw.get("particle_gravity", ParticlesConfig.particle_gravity)),
+            shockwave_duration=float(pc_raw.get("shockwave_duration", ParticlesConfig.shockwave_duration)),
+            shockwave_max_scale=float(pc_raw.get("shockwave_max_scale", ParticlesConfig.shockwave_max_scale)),
+        )
+        ui_raw = data.get("ui", {})
+        uc = UIConfig(
+            popup_duration=float(ui_raw.get("popup_duration", UIConfig.popup_duration)),
+            popup_rise_speed=float(ui_raw.get("popup_rise_speed", UIConfig.popup_rise_speed)),
+        )
         return cls(
             starting_level=int(game.get("starting_level", cls.starting_level)),
             num_lives=int(game.get("num_lives", cls.num_lives)),
@@ -84,6 +108,8 @@ class GameConfig:
             ship=sc,
             enemies=ec,
             background=bc,
+            particles=pc,
+            ui=uc,
         )
 
     def save(self, path: Path = _DEFAULT_PATH) -> None:
@@ -128,5 +154,11 @@ class GameConfig:
             f"enemy_fire_interval_min = {ec.enemy_fire_interval_min}\n",
             f"enemy_fire_interval_max = {ec.enemy_fire_interval_max}\n",
             f"enemy_bullet_speed = {ec.enemy_bullet_speed}\n",
+        ]
+        uc = self.ui
+        lines += [
+            "\n[ui]\n",
+            f"popup_duration = {uc.popup_duration}\n",
+            f"popup_rise_speed = {uc.popup_rise_speed}\n",
         ]
         path.write_text("".join(lines), encoding="utf-8")

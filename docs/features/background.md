@@ -54,10 +54,8 @@ class StaticBackground:
   parallax — slower stars appear further away
 - Stars wrap from bottom back to top when they scroll off screen,
   randomising x position on wrap for variety
-- Implemented using arcade.ShapeElementList for batched GPU rendering —
+- Implemented using arcade.SpriteList for batched GPU rendering —
   NOT individual draw calls per star
-- ShapeElementList rebuilt only when one or more stars wrap around
-  (typically 1-2 per frame at most) — not every frame
 
 ### Star properties (randomised per star on init)
 - x: random across window width

@@ -8,6 +8,13 @@ simultaneously. No additional bitmap assets are required beyond the
 existing explosion sprite sheet — particles and the shockwave are
 generated programmatically.
 
+### Momentum
+
+All 3 layer effects are subject to momentum:
+- have an initial speed based on the speed of the enemy or player ship
+- this initial speed is added to all calculated speeds
+- for example: if the enemy or player was moving left, the debris and explosion inherit the objects previous path and move to the left.
+
 ## Files
 - src/space_attackers/sprites/particles.py
   - Particle class
@@ -123,13 +130,6 @@ class ParticleEmitter:
     def active_count(self) -> int:
         """Number of live particles — useful for debug display."""
 ```
-
-### Gravity
-
-Particles are subject to simulated gravity pulling them downward:
-- `particle_gravity`: 150 pixels/second² (configurable)
-- Applied as: `change_y -= particle_gravity * delta_time` each frame
-- Creates a natural arc for debris rather than perfectly straight lines
 
 ## Layer 3 — Shockwave ring
 

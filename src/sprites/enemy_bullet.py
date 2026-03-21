@@ -34,6 +34,7 @@ class EnemyBullet(arcade.Sprite):
             super().__init__(tex)
         self.center_x = x
         self.center_y = y
+        self.angle = 180
         self._speed = speed
 
     def update(self, delta_time: float = 1 / 60) -> None:  # type: ignore[override]
