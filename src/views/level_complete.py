@@ -40,6 +40,7 @@ class LevelCompleteView(arcade.View):
             player.level_snapshot = None
 
     def on_show_view(self) -> None:
+        self.window.music.play("ending")  # type: ignore[attr-defined]
         w, h = self.window.width, self.window.height
         self._title_text = centered_text(
             "LEVEL COMPLETE!", w, h // 2 + 100,

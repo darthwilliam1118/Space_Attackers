@@ -34,6 +34,7 @@ class GameConfigView(arcade.View):
         self._hint_text: Optional[arcade.Text] = None
 
     def on_show_view(self) -> None:
+        self.window.music.play("ending")  # type: ignore[attr-defined]
         w, h = self.window.width, self.window.height
         self._title_text = centered_text(
             "GAME CONFIG", w, h - 80,

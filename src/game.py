@@ -2,6 +2,7 @@ import pyglet
 import arcade
 from src.background import ProceduralStarField, StaticBackground
 from src.game_config import GameConfig
+from src.music import MusicPlayer
 from src.paths import resource_path
 from src.state import GameState, GameStateManager
 
@@ -33,6 +34,7 @@ class GameWindow(arcade.Window):
         bg = cfg.background
         self.background = StaticBackground(bg.background_image, w, h)
         self.star_field = ProceduralStarField(w, h, bg.star_count, bg.star_speed_min, bg.star_speed_max)
+        self.music = MusicPlayer()
         self._manager = GameStateManager(self)
         self._manager.transition(GameState.SPLASH)
 

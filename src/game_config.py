@@ -65,16 +65,23 @@ class GameConfig:
         )
         ec_raw = data.get("enemies", {})
         ec = EnemyConfig(
-            enemy_cols=int(ec_raw.get("enemy_cols", EnemyConfig.enemy_cols)),
-            enemy_rows=int(ec_raw.get("enemy_rows", EnemyConfig.enemy_rows)),
+            enemy_cols_start=int(ec_raw.get("enemy_cols_start", EnemyConfig.enemy_cols_start)),
+            enemy_rows_start=int(ec_raw.get("enemy_rows_start", EnemyConfig.enemy_rows_start)),
+            enemy_cols_max=int(ec_raw.get("enemy_cols_max", EnemyConfig.enemy_cols_max)),
+            enemy_rows_max=int(ec_raw.get("enemy_rows_max", EnemyConfig.enemy_rows_max)),
+            enemy_cols_per_level=int(ec_raw.get("enemy_cols_per_level", EnemyConfig.enemy_cols_per_level)),
+            enemy_rows_per_level=int(ec_raw.get("enemy_rows_per_level", EnemyConfig.enemy_rows_per_level)),
             enemy_col_width_factor=float(ec_raw.get("enemy_col_width_factor", EnemyConfig.enemy_col_width_factor)),
             enemy_speed_initial=float(ec_raw.get("enemy_speed_initial", EnemyConfig.enemy_speed_initial)),
             enemy_speed_max_bonus=float(ec_raw.get("enemy_speed_max_bonus", EnemyConfig.enemy_speed_max_bonus)),
-            enemy_speed_level_bonus=float(ec_raw.get("enemy_speed_level_bonus", EnemyConfig.enemy_speed_level_bonus)),
+            enemy_speed_level_pct=float(ec_raw.get("enemy_speed_level_pct", EnemyConfig.enemy_speed_level_pct)),
             enemy_side_margin=float(ec_raw.get("enemy_side_margin", EnemyConfig.enemy_side_margin)),
             enemy_drop_distance=float(ec_raw.get("enemy_drop_distance", EnemyConfig.enemy_drop_distance)),
-            enemy_fire_interval_min=float(ec_raw.get("enemy_fire_interval_min", EnemyConfig.enemy_fire_interval_min)),
-            enemy_fire_interval_max=float(ec_raw.get("enemy_fire_interval_max", EnemyConfig.enemy_fire_interval_max)),
+            enemy_fire_interval_min_l1=float(ec_raw.get("enemy_fire_interval_min_l1", EnemyConfig.enemy_fire_interval_min_l1)),
+            enemy_fire_interval_max_l1=float(ec_raw.get("enemy_fire_interval_max_l1", EnemyConfig.enemy_fire_interval_max_l1)),
+            enemy_fire_interval_scale=float(ec_raw.get("enemy_fire_interval_scale", EnemyConfig.enemy_fire_interval_scale)),
+            enemy_fire_interval_min_cap=float(ec_raw.get("enemy_fire_interval_min_cap", EnemyConfig.enemy_fire_interval_min_cap)),
+            enemy_fire_interval_max_cap=float(ec_raw.get("enemy_fire_interval_max_cap", EnemyConfig.enemy_fire_interval_max_cap)),
             enemy_bullet_speed=float(ec_raw.get("enemy_bullet_speed", EnemyConfig.enemy_bullet_speed)),
         )
         bg_raw = data.get("background", {})
@@ -143,16 +150,23 @@ class GameConfig:
         ec = self.enemies
         lines += [
             "\n[enemies]\n",
-            f"enemy_cols = {ec.enemy_cols}\n",
-            f"enemy_rows = {ec.enemy_rows}\n",
+            f"enemy_cols_start = {ec.enemy_cols_start}\n",
+            f"enemy_rows_start = {ec.enemy_rows_start}\n",
+            f"enemy_cols_max = {ec.enemy_cols_max}\n",
+            f"enemy_rows_max = {ec.enemy_rows_max}\n",
+            f"enemy_cols_per_level = {ec.enemy_cols_per_level}\n",
+            f"enemy_rows_per_level = {ec.enemy_rows_per_level}\n",
             f"enemy_col_width_factor = {ec.enemy_col_width_factor}\n",
             f"enemy_speed_initial = {ec.enemy_speed_initial}\n",
             f"enemy_speed_max_bonus = {ec.enemy_speed_max_bonus}\n",
-            f"enemy_speed_level_bonus = {ec.enemy_speed_level_bonus}\n",
+            f"enemy_speed_level_pct = {ec.enemy_speed_level_pct}\n",
             f"enemy_side_margin = {ec.enemy_side_margin}\n",
             f"enemy_drop_distance = {ec.enemy_drop_distance}\n",
-            f"enemy_fire_interval_min = {ec.enemy_fire_interval_min}\n",
-            f"enemy_fire_interval_max = {ec.enemy_fire_interval_max}\n",
+            f"enemy_fire_interval_min_l1 = {ec.enemy_fire_interval_min_l1}\n",
+            f"enemy_fire_interval_max_l1 = {ec.enemy_fire_interval_max_l1}\n",
+            f"enemy_fire_interval_scale = {ec.enemy_fire_interval_scale}\n",
+            f"enemy_fire_interval_min_cap = {ec.enemy_fire_interval_min_cap}\n",
+            f"enemy_fire_interval_max_cap = {ec.enemy_fire_interval_max_cap}\n",
             f"enemy_bullet_speed = {ec.enemy_bullet_speed}\n",
         ]
         uc = self.ui

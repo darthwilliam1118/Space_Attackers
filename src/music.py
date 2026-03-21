@@ -1,0 +1,56 @@
+"""MusicPlayer — loads and manages background music tracks."""
+
+from __future__ import annotations
+
+from typing import Optional
+
+import arcade
+
+from src.paths import resource_path
+
+_TRACKS: dict[str, str] = {
+    "ending": "assets/music/Juhani Junkala [Retro Game Music Pack] Ending.ogg",
+    "level_1": "assets/music/Juhani Junkala [Retro Game Music Pack] Level 1.ogg",
+    "level_2": "assets/music/Juhani Junkala [Retro Game Music Pack] Level 2.ogg",
+    "level_3": "assets/music/Juhani Junkala [Retro Game Music Pack] Level 3.ogg",
+}
+
+# Number of distinct level tracks available
+LEVEL_TRACK_COUNT = 3
+
+
+def track_key_for_level(level: int) -> str:
+    """Return the music track key for *level*, cycling through the 3 level tracks."""
+    idx = ((level - 1) % LEVEL_TRACK_COUNT) + 1
+    return f"level_{idx}"
+
+
+class MusicPlayer:
+    """Owns all music tracks and keeps at most one playing at a time.
+
+    Call play(key) from each view's on_show_view().  If the requested track
+    is already playing it continues uninterrupted (no restart on re-entry).
+    """
+
+    def __init__(self) -> None:
+        self._sounds: dict[str, arcade.Sound] = {
+            key: arcade.load_sound(resource_path(path))
+            for key, path in _TRACKS.items()
+        }
+        self._current_key: Optional[str] = None
+        self._player: Optional[object] = None  # pyglet.media.player.Player returned by arcade.play_sound
+
+    def play(self, key: str) -> None:
+        """Start playing *key* looped.  No-op if *key* is already playing."""
+        if key == self._current_key:
+            return
+        self.stop()
+        self._current_key = key
+        self._player = arcade.play_sound(self._sounds[key], loop=True)
+
+    def stop(self) -> None:
+        """Stop whatever is currently playing."""
+        if self._player is not None:
+            self._player.pause()
+            self._player = None
+        self._current_key = None

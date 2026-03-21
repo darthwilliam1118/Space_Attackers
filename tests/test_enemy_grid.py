@@ -22,7 +22,21 @@ def _bullet_tex() -> arcade.Texture:
 
 
 def _cfg(**kwargs: object) -> EnemyConfig:
-    return EnemyConfig(**kwargs)  # type: ignore[arg-type]
+    # Map legacy test kwargs to new per-level-scaling field names.
+    # Tests often pass a fixed grid size via enemy_cols/enemy_rows; we honour
+    # that by setting both start and max to the same value so setup(level=1)
+    # always produces exactly that size.
+    remapped: dict[str, object] = {}
+    for k, v in kwargs.items():
+        if k == "enemy_cols":
+            remapped["enemy_cols_start"] = v
+            remapped["enemy_cols_max"] = v
+        elif k == "enemy_rows":
+            remapped["enemy_rows_start"] = v
+            remapped["enemy_rows_max"] = v
+        else:
+            remapped[k] = v
+    return EnemyConfig(**remapped)  # type: ignore[arg-type]
 
 
 def _grid(**kwargs: object) -> EnemyGrid:
@@ -274,7 +288,10 @@ class TestApplyPlayerBullet:
         bullet.center_x = enemy.center_x
         bullet.center_y = enemy.center_y
         result = g.apply_player_bullet(bullet)
-        assert result == (expected_cx, expected_cy)
+        assert result is not None
+        hit_x, hit_y, points = result
+        assert (hit_x, hit_y) == (expected_cx, expected_cy)
+        assert isinstance(points, int) and points > 0
 
     def test_removes_enemy_on_hit(self) -> None:
         g = _grid(enemy_cols=1, enemy_rows=1)

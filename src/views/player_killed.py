@@ -56,6 +56,7 @@ class PlayerKilledView(arcade.View):
         return GameState.GAME_OVER, {}
 
     def on_show_view(self) -> None:
+        self.window.music.play("ending")  # type: ignore[attr-defined]
         w, h = self.window.width, self.window.height
         players = self._manager.context.get("players", [])
         idx = self._manager.context.get("active_player_index", 0)

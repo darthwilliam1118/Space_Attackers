@@ -11,7 +11,8 @@
       "Bash(python -m pytest --cov=src -q)",
       "Bash(python -c \":*)",
       "Bash(python -m pytest tests/test_background.py tests/test_hud.py -v)",
-      "Bash(python -m pytest -q)"
+      "Bash(python -m pytest -q)",
+      "Bash(grep -n \"def on_show_view\" c:UsersdarthCodeSpace_Attackerssrcviews*.py)"
     ],
     "additionalDirectories": [
       "c:\\Users\\darth\\.claude\\projects\\c--Users-darth-Code-Space-Attackers\\memory"

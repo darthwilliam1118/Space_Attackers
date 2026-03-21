@@ -49,6 +49,12 @@ class EnemyGrid:
         self._total_enemies: int = 0
         self._enemies_destroyed: int = 0
 
+        # Level-computed grid dimensions and fire intervals
+        self._cols: int = config.enemy_cols_start
+        self._rows: int = config.enemy_rows_start
+        self._fire_min: float = config.enemy_fire_interval_min_l1
+        self._fire_max: float = config.enemy_fire_interval_max_l1
+
         # Per-column shoot timers {col_index: seconds_until_next_shot}
         self._shoot_timers: dict[int, float] = {}
 
@@ -65,6 +71,19 @@ class EnemyGrid:
         cfg = self._config
         w, h = self._window_width, self._window_height
 
+        # Compute level-scaled grid dimensions and fire intervals
+        self._cols = min(
+            cfg.enemy_cols_start + (level - 1) * cfg.enemy_cols_per_level,
+            cfg.enemy_cols_max,
+        )
+        self._rows = min(
+            cfg.enemy_rows_start + (level - 1) * cfg.enemy_rows_per_level,
+            cfg.enemy_rows_max,
+        )
+        scale = cfg.enemy_fire_interval_scale ** (level - 1)
+        self._fire_min = max(cfg.enemy_fire_interval_min_l1 * scale, cfg.enemy_fire_interval_min_cap)
+        self._fire_max = max(cfg.enemy_fire_interval_max_l1 * scale, cfg.enemy_fire_interval_max_cap)
+
         # Fixed column spacing: probe one sprite to get its rendered width,
         # then scale by the config factor (e.g. 1.1 = 10% wider than sprite).
         _probe = EnemySprite(
@@ -77,26 +96,26 @@ class EnemyGrid:
         col_spacing = _probe.width * cfg.enemy_col_width_factor
 
         # Centre the formation horizontally on the window.
-        total_span = (cfg.enemy_cols - 1) * col_spacing
+        total_span = (self._cols - 1) * col_spacing
         self._origin_x = w / 2.0 - total_span / 2.0
 
         # Vertical layout: topmost row at 80% of window height
         top_y = h * 0.80
-        row_spacing = (h * 0.30) / max(cfg.enemy_rows - 1, 1) if cfg.enemy_rows > 1 else 0.0
+        row_spacing = (h * 0.30) / max(cfg.enemy_rows_max - 1, 1)
 
         self._origin_y = top_y
 
-        self._col_offsets = [c * col_spacing for c in range(cfg.enemy_cols)]
-        self._row_offsets = [r * (-row_spacing) for r in range(cfg.enemy_rows)]
+        self._col_offsets = [c * col_spacing for c in range(self._cols)]
+        self._row_offsets = [r * (-row_spacing) for r in range(self._rows)]
 
         self._sprite_list = arcade.SpriteList(use_spatial_hash=True)
-        self._total_enemies = cfg.enemy_cols * cfg.enemy_rows
+        self._total_enemies = self._cols * self._rows
         self._enemies_destroyed = 0
         self.recalculate_speed()  # sets initial speed for this level
 
-        for row in range(cfg.enemy_rows):
+        for row in range(self._rows):
             color, ship_type = ROW_MAPPING[row % 5]
-            for col in range(cfg.enemy_cols):
+            for col in range(self._cols):
                 sprite = EnemySprite(
                     color=color,
                     ship_type=ship_type,
@@ -111,8 +130,8 @@ class EnemyGrid:
                 self._sprite_list.append(sprite)
 
         self._shoot_timers = {
-            col: random.uniform(cfg.enemy_fire_interval_min, cfg.enemy_fire_interval_max)
-            for col in range(cfg.enemy_cols)
+            col: random.uniform(self._fire_min, self._fire_max)
+            for col in range(self._cols)
         }
         self._bullet_list = arcade.SpriteList(use_spatial_hash=False)
 
@@ -164,12 +183,10 @@ class EnemyGrid:
         for col, enemy in bottom_enemies.items():
             if enemy is None or col in active_cols:
                 continue
-            self._shoot_timers[col] = self._shoot_timers.get(col, cfg.enemy_fire_interval_max)
+            self._shoot_timers[col] = self._shoot_timers.get(col, self._fire_max)
             self._shoot_timers[col] -= delta_time
             if self._shoot_timers[col] <= 0.0:
-                self._shoot_timers[col] = random.uniform(
-                    cfg.enemy_fire_interval_min, cfg.enemy_fire_interval_max
-                )
+                self._shoot_timers[col] = random.uniform(self._fire_min, self._fire_max)
                 bullet = EnemyBullet(
                     x=enemy.center_x,
                     y=enemy.bottom,
@@ -200,10 +217,11 @@ class EnemyGrid:
     # Player bullet hit
     # ------------------------------------------------------------------
 
-    def apply_player_bullet(self, bullet: arcade.Sprite) -> Optional[tuple[float, float]]:
+    def apply_player_bullet(self, bullet: arcade.Sprite) -> Optional[tuple[float, float, int]]:
         """Check *bullet* against the grid.
 
-        Returns the hit enemy's center (cx, cy) on a hit, or None on a miss.
+        Returns (cx, cy, points) on a hit, or None on a miss.
+        Points are row-based (top row highest) plus a per-5-level band bonus.
         Caller is responsible for removing the bullet.
         """
         hits = arcade.check_for_collision_with_list(bullet, self._sprite_list)
@@ -211,10 +229,13 @@ class EnemyGrid:
             return None
         enemy = hits[0]  # at most one enemy hit per bullet
         cx, cy = enemy.center_x, enemy.center_y
+        row_pts = (self._rows - enemy.row) * 10
+        band_bonus = ((self._level - 1) // 5) * 10
+        points = row_pts + band_bonus
         enemy.remove_from_sprite_lists()
         self._enemies_destroyed += 1
         self.recalculate_speed()
-        return cx, cy
+        return cx, cy, points
 
     # ------------------------------------------------------------------
     # Queries
@@ -223,7 +244,7 @@ class EnemyGrid:
     def get_bottom_enemies(self) -> dict[int, Optional[EnemySprite]]:
         """Returns {col: lowest-surviving EnemySprite} for each column."""
         bottom: dict[int, Optional[EnemySprite]] = {
-            c: None for c in range(self._config.enemy_cols)
+            c: None for c in range(self._cols)
         }
         for sprite in self._sprite_list:  # type: ignore[attr-defined]
             col = sprite.col
@@ -251,13 +272,14 @@ class EnemyGrid:
     # ------------------------------------------------------------------
 
     def recalculate_speed(self) -> None:
-        """speed = (initial + (level-1) × level_bonus) + sqrt(kill_pct) × max_bonus.
+        """speed = initial × 1.15^(level-1)  +  sqrt(kill_pct) × max_bonus.
 
-        Square-root curve: gives a noticeable jump on the first kill and
-        keeps accelerating through the last enemy, matching classic feel.
+        Multiplicative base ensures the level ramp feels proportionally faster.
+        Square-root kill curve keeps classic feel: big jump on first kill,
+        steady acceleration to the last enemy.
         """
         cfg = self._config
-        level_floor = cfg.enemy_speed_initial + (self._level - 1) * cfg.enemy_speed_level_bonus
+        level_floor = cfg.enemy_speed_initial * ((1.0 + cfg.enemy_speed_level_pct) ** (self._level - 1))
         pct = self._enemies_destroyed / max(self._total_enemies, 1)
         self._speed = level_floor + (pct ** 0.5) * cfg.enemy_speed_max_bonus
 
@@ -339,6 +361,18 @@ class EnemyGrid:
         """
         grid = cls(config, window_width, window_height, enemy_texture, bullet_texture)
         grid._level = int(snapshot.get("level", 1))
+        level = grid._level
+        grid._cols = min(
+            config.enemy_cols_start + (level - 1) * config.enemy_cols_per_level,
+            config.enemy_cols_max,
+        )
+        grid._rows = min(
+            config.enemy_rows_start + (level - 1) * config.enemy_rows_per_level,
+            config.enemy_rows_max,
+        )
+        scale = config.enemy_fire_interval_scale ** (level - 1)
+        grid._fire_min = max(config.enemy_fire_interval_min_l1 * scale, config.enemy_fire_interval_min_cap)
+        grid._fire_max = max(config.enemy_fire_interval_max_l1 * scale, config.enemy_fire_interval_max_cap)
         grid._direction = float(snapshot.get("direction", 1.0))
         grid._speed = float(snapshot.get("speed", config.enemy_speed_initial))
         grid._origin_x = float(snapshot.get("origin_x", 0.0))
