@@ -33,18 +33,22 @@ class MusicPlayer:
     """
 
     def __init__(self) -> None:
-        self._sounds: dict[str, arcade.Sound] = {
-            key: arcade.load_sound(resource_path(path))
-            for key, path in _TRACKS.items()
-        }
+        self._sounds: dict[str, arcade.Sound] = {}
         self._current_key: Optional[str] = None
         self._player: Optional[object] = None  # pyglet.media.player.Player returned by arcade.play_sound
+        # All tracks are lazy-loaded: load_track() / play() on demand
+
+    def load_track(self, key: str) -> None:
+        """Load *key* into _sounds if not already loaded (idempotent)."""
+        if key not in self._sounds:
+            self._sounds[key] = arcade.load_sound(resource_path(_TRACKS[key]))
 
     def play(self, key: str) -> None:
         """Start playing *key* looped.  No-op if *key* is already playing."""
         if key == self._current_key:
             return
         self.stop()
+        self.load_track(key)  # lazy fallback in case preload was skipped
         self._current_key = key
         self._player = arcade.play_sound(self._sounds[key], loop=True)
 

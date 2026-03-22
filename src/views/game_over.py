@@ -9,10 +9,10 @@ import arcade
 if TYPE_CHECKING:
     from src.state import GameStateManager
 
+from src.high_scores import HighScoreTable, scores_path
 from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
 
 _DISPLAY_DURATION = 4.0
-_QUALIFY_SCORE = 0  # placeholder — any score qualifies until leaderboard is real
 
 
 class GameOverView(arcade.View):
@@ -29,8 +29,10 @@ class GameOverView(arcade.View):
         self._press_key_text: Optional[arcade.Text] = None
 
     def _qualifies_for_leaderboard(self) -> bool:
+        table = HighScoreTable.load(scores_path())
+        self._manager.context["high_score_table"] = table
         players = self._manager.context.get("players", [])
-        return any(p.score > _QUALIFY_SCORE for p in players)
+        return any(table.qualifies(p.score) for p in players)
 
     def on_show_view(self) -> None:
         self.window.music.play("ending")  # type: ignore[attr-defined]
