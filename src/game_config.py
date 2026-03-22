@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 from src.background_config import BackgroundConfig
 from src.enemy_config import EnemyConfig
@@ -12,7 +14,16 @@ from src.particles_config import ParticlesConfig
 from src.ship_config import ShipConfig
 from src.ui_config import UIConfig
 
-_DEFAULT_PATH = Path(__file__).parent.parent / "game_config.toml"
+
+def _config_path() -> Path:
+    """Return the path to game_config.toml.
+
+    When frozen by PyInstaller, look next to the .exe so users can edit it.
+    In dev, look in the project root (two levels above src/).
+    """
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent / "game_config.toml"
+    return Path(__file__).parent.parent / "game_config.toml"
 
 
 @dataclass
@@ -40,10 +51,20 @@ class GameConfig:
             self.ui = UIConfig()
 
     @classmethod
-    def load(cls, path: Path = _DEFAULT_PATH) -> "GameConfig":
-        """Load config from *path*. Missing keys fall back to dataclass defaults."""
-        with open(path, "rb") as fh:
-            data = tomllib.load(fh)
+    def load(cls, path: Optional[Path] = None) -> "GameConfig":
+        """Load config from *path*. Missing keys fall back to dataclass defaults.
+
+        If *path* is None, uses the platform-appropriate default (next to the .exe
+        when frozen, or the project root in dev). Returns default config on any error.
+        """
+        if path is None:
+            path = _config_path()
+        try:
+            with open(path, "rb") as fh:
+                data = tomllib.load(fh)
+        except Exception:
+            return cls()
+
         game = data.get("game", {})
         ship = data.get("ship", {})
         sc = ShipConfig(
@@ -119,8 +140,10 @@ class GameConfig:
             ui=uc,
         )
 
-    def save(self, path: Path = _DEFAULT_PATH) -> None:
+    def save(self, path: Optional[Path] = None) -> None:
         """Persist current values back to *path* as TOML."""
+        if path is None:
+            path = _config_path()
         sc = self.ship
         lines = [
             "[game]\n",

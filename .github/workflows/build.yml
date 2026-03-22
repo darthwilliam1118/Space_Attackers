@@ -43,4 +43,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: dist/Space_Attackers.exe
+          files: |
+            dist/Space_Attackers.exe
+            game_config.toml
