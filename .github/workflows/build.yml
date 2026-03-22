@@ -5,6 +5,10 @@ on:
     branches: [main]
     tags: ["v*"]
   workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
   test-and-build:
     runs-on: windows-latest
