@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from src.state import GameStateManager
 
 from src.high_scores import HighScoreTable, scores_path
-from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
+from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text, measure_text_width
 
 _DONE_DURATION = 3.0
 _CURSOR_BLINK = 0.5  # seconds per half-cycle
@@ -38,7 +38,7 @@ class ScoreEntryView(arcade.View):
         self._save_error: Optional[str] = None
 
         self._title_text: Optional[arcade.Text] = None
-        self._entry_rows: list[arcade.Text] = []
+        self._entry_rows: list[tuple[arcade.Text, arcade.Text, arcade.Text]] = []
         self._prompt_text: Optional[arcade.Text] = None
         self._name_text: Optional[arcade.Text] = None
         self._cursor_text: Optional[arcade.Text] = None
@@ -87,8 +87,10 @@ class ScoreEntryView(arcade.View):
 
         if self._title_text:
             self._title_text.draw()
-        for row in self._entry_rows:
-            row.draw()
+        for rank_t, name_t, score_t in self._entry_rows:
+            rank_t.draw()
+            name_t.draw()
+            score_t.draw()
 
         if self._state == "save_error":
             if self._error_line1:
@@ -137,13 +139,31 @@ class ScoreEntryView(arcade.View):
 
         top_y = h - 110
         row_h = 28
-        self._entry_rows = [
-            centered_text(
-                "", w, top_y - i * row_h,
-                font_size=18, color=arcade.color.WHITE, font_name=FONT_THIN,
+        _col_font_size = 18
+        _col_gap = 16
+        name_col_w = measure_text_width(
+            "W" * HighScoreTable.MAX_NAME_LEN, _col_font_size, FONT_THIN
+        )
+        name_x = w / 2 - name_col_w / 2
+        name_x_end = w / 2 + name_col_w / 2
+        rank_x = name_x - _col_gap
+        score_x = name_x_end + _col_gap
+        self._entry_rows = []
+        for i in range(HighScoreTable.MAX_ENTRIES):
+            y = top_y - i * row_h
+            rank_t = arcade.Text(
+                "", rank_x, y, arcade.color.WHITE, _col_font_size,
+                font_name=FONT_THIN, anchor_x="right", anchor_y="center",
             )
-            for i in range(HighScoreTable.MAX_ENTRIES)
-        ]
+            name_t = arcade.Text(
+                "", name_x, y, arcade.color.WHITE, _col_font_size,
+                font_name=FONT_THIN, anchor_x="left", anchor_y="center",
+            )
+            score_t = arcade.Text(
+                "", score_x, y, arcade.color.WHITE, _col_font_size,
+                font_name=FONT_THIN, anchor_x="left", anchor_y="center",
+            )
+            self._entry_rows.append((rank_t, name_t, score_t))
 
         prompt_y = top_y - HighScoreTable.MAX_ENTRIES * row_h - 24
         self._prompt_text = centered_text(
@@ -182,17 +202,22 @@ class ScoreEntryView(arcade.View):
 
     def _refresh_rows(self) -> None:
         entries = self._table.entries if self._table else []
-        for i, text_obj in enumerate(self._entry_rows):
+        for i, (rank_t, name_t, score_t) in enumerate(self._entry_rows):
             rank = i + 1
             if i < len(entries):
                 e = entries[i]
-                text_obj.text = f"#{rank:<2}  {e.name:<10}  {e.score:>6}"
-                text_obj.color = (
+                color: tuple[int, int, int, int] = (
                     arcade.color.YELLOW if rank == self._new_rank else arcade.color.WHITE
                 )
+                rank_t.text = f"#{rank}"
+                name_t.text = e.name
+                score_t.text = str(e.score)
+                rank_t.color = name_t.color = score_t.color = color
             else:
-                text_obj.text = f"#{rank:<2}  {'---':<10}"
-                text_obj.color = (80, 80, 80, 255)
+                rank_t.text = f"#{rank}"
+                name_t.text = "---"
+                score_t.text = ""
+                rank_t.color = name_t.color = score_t.color = (80, 80, 80, 255)
 
     def _refresh_prompt(self) -> None:
         if self._state == "done":

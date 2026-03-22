@@ -2,6 +2,8 @@
 
 A Space Invaders-style arcade game built in Python using the [Arcade](https://api.arcade.academy/) library. This project was created as a learning exercise for [Claude Code](https://claude.ai/claude-code).
 
+## Download
+👾 [Download Space Attackers for Windows](https://github.com/darthwilliam1118/Space_Attackers/releases/latest)
 ## How to Play
 
 ### Controls
@@ -22,9 +24,8 @@ Destroy all enemies in the grid before their bullets hit your ship. Clear each w
 
 - Your ship tilts as it moves — bullets fire in the direction of the tilt.
 - After spawning you have a brief invincibility window (ship flashes).
-- Enemies speed up as their numbers thin out — finish waves quickly.
-
----
+- Enemies speed up as their numbers thin out
+- Finish waves quickly.
 
 ## Running the Game
 
@@ -108,3 +109,9 @@ pytest --cov=src
 | `[ship]` | `bullet_speed` | `500` | Player bullet speed (px/s) |
 | `[ship]` | `spawn_invincible_duration` | `2.0` | Invincibility seconds after spawn |
 | `[ship]` | `ship_zone_height_pct` | `0.33` | Fraction of screen height the ship can move in |
+
+## Assets
+- Sprites: Kenney (kenney.nl) — CC0 Public Domain
+ - Fonts: KenPixel & KenVector fonts by Kenney Vleugels (www.kenney.nl)
+   Modified by MedicineStorm [OpenGameArt.org]
+- Sound effects: [OpenGameArt.org] — CC0 Public Domain

@@ -50,7 +50,7 @@ class ScorePopup:
                 y,
                 color=(255, 220, 50, 255),
                 font_size=14,
-                font_name="Kenvector Future",
+                font_name="KenVector Future2 Thin",
                 anchor_x="center",
             )
 

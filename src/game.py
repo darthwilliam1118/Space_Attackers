@@ -28,8 +28,8 @@ class GameWindow(arcade.Window):
         w, h = _window_size()
         super().__init__(w, h, SCREEN_TITLE, center_window=True)
         arcade.set_background_color(arcade.color.BLACK)
-        arcade.load_font(resource_path("assets/fonts/kenvector_future.ttf"))
-        arcade.load_font(resource_path("assets/fonts/kenvector_future_thin.ttf"))
+        arcade.load_font(resource_path("assets/fonts/kenvector_future2.ttf"))
+        arcade.load_font(resource_path("assets/fonts/kenvector_future_thin2.ttf"))
         cfg = GameConfig.load()
         bg = cfg.background
         self.background = StaticBackground(bg.background_image, w, h)
