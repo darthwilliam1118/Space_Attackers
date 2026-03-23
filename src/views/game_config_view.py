@@ -49,7 +49,7 @@ class GameConfigView(arcade.View):
         ]
         self._hint_text = centered_text(
             "↑ ↓ = select    ← → = change value    ESC = save & return",
-            w, 40, font_size=14, color=(160, 160, 160, 255), font_name=FONT_THIN,
+            w, int(h * 0.05), font_size=14, color=(160, 160, 160, 255), font_name=FONT_THIN,
         )
         self._refresh_fields()
 

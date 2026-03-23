@@ -32,6 +32,7 @@ class GameConfig:
     num_lives: int = 3
     spawn_safe_radius: int = 80
     debug: bool = False
+    max_window_height: int = 0   # 0 = no cap; set e.g. 800 to test smaller screen sizes
     ship: ShipConfig = None  # type: ignore[assignment]
     enemies: EnemyConfig = None  # type: ignore[assignment]
     background: BackgroundConfig = None  # type: ignore[assignment]
@@ -133,6 +134,7 @@ class GameConfig:
             num_lives=int(game.get("num_lives", cls.num_lives)),
             spawn_safe_radius=int(game.get("spawn_safe_radius", cls.spawn_safe_radius)),
             debug=bool(game.get("debug", cls.debug)),
+            max_window_height=int(game.get("max_window_height", 0)),
             ship=sc,
             enemies=ec,
             background=bc,
@@ -151,6 +153,7 @@ class GameConfig:
             f"num_lives = {self.num_lives}\n",
             f"spawn_safe_radius = {self.spawn_safe_radius}\n",
             f"debug = {'true' if self.debug else 'false'}\n",
+            f"max_window_height = {self.max_window_height}\n",
             "\n[ship]\n",
             f"ship_speed = {sc.ship_speed}\n",
             f"ship_accel = {sc.ship_accel}\n",

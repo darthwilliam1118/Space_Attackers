@@ -15,7 +15,8 @@
       "Bash(grep -n \"def on_show_view\" c:UsersdarthCodeSpace_Attackerssrcviews*.py)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\darth\\.claude\\projects\\c--Users-darth-Code-Space-Attackers\\memory"
+      "c:\\Users\\darth\\.claude\\projects\\c--Users-darth-Code-Space-Attackers\\memory",
+      "c:\\Users\\darth\\.claude\\plans"
     ]
   }
 }

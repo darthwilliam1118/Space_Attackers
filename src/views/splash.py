@@ -43,7 +43,7 @@ class SplashView(arcade.View):
             font_size=64, color=arcade.color.YELLOW, font_name=FONT_MAIN, bold=True,
         )
         self._prompt_text = centered_text(
-            self.PROMPT, w, 40,
+            self.PROMPT, w, int(h * 0.05),
             font_size=18, color=arcade.color.WHITE, font_name=FONT_THIN,
         )
         # Load all music in the background; splash appears with no audio delay.

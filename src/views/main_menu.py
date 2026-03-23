@@ -15,7 +15,7 @@ from src.high_scores import HighScoreTable, scores_path
 from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text, measure_text_width
 
 _PAGES = ["LEADERBOARD", "INSTRUCTIONS"]
-_CYCLE_INTERVAL = 8.0   # seconds per page
+_CYCLE_INTERVAL = 15.0  # seconds per page
 _SCROLL_SPEED = 28.0    # px/s for instruction autoscroll
 _LINE_HEIGHT = 26       # px between instruction lines
 
@@ -199,6 +199,7 @@ class MainMenuView(arcade.View):
         self._instr_max_scroll: float = 0.0
         self._content_top: float = 0.0
         self._content_bottom: float = 0.0
+        self._scroll_delay: float = 0.0
 
     # ------------------------------------------------------------------
     # Arcade callbacks
@@ -208,6 +209,7 @@ class MainMenuView(arcade.View):
         self.window.music.play("ending")  # type: ignore[attr-defined]
         self._elapsed = 0.0
         self._scroll_offset = 0.0
+        self._scroll_delay = 5.0 if _PAGES[self._page_index] == "INSTRUCTIONS" else 0.0
 
         w, h = self.window.width, self.window.height
         self._content_top = float(h - 145)
@@ -243,12 +245,17 @@ class MainMenuView(arcade.View):
             self._page_index = (self._page_index + 1) % len(_PAGES)
             if self._page_indicator:
                 self._page_indicator.text = self._page_label()
+            if _PAGES[self._page_index] == "INSTRUCTIONS":
+                self._scroll_delay = 5.0
 
         if _PAGES[self._page_index] == "INSTRUCTIONS" and self._instr_needs_scroll:
-            self._scroll_offset = min(
-                self._scroll_offset + _SCROLL_SPEED * delta_time,
-                self._instr_max_scroll,
-            )
+            if self._scroll_delay > 0:
+                self._scroll_delay -= delta_time
+            else:
+                self._scroll_offset = min(
+                    self._scroll_offset + _SCROLL_SPEED * delta_time,
+                    self._instr_max_scroll,
+                )
 
         self._prompt_elapsed += delta_time
         if self._start_prompt is not None:
@@ -278,7 +285,7 @@ class MainMenuView(arcade.View):
             for i, (text_a, text_b) in enumerate(self._instr_texts):
                 y = self._content_top - i * _LINE_HEIGHT + self._scroll_offset
                 text_a.y = y
-                if self._content_bottom - _LINE_HEIGHT <= y <= self._content_top + _LINE_HEIGHT:
+                if self._content_bottom <= y <= self._content_top + _LINE_HEIGHT:
                     text_a.draw()
                     if text_b is not None:
                         text_b.y = y
