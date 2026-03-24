@@ -32,7 +32,7 @@ class GameConfig:
     num_lives: int = 3
     spawn_safe_radius: int = 80
     debug: bool = False
-    max_window_height: int = 0   # 0 = no cap; set e.g. 800 to test smaller screen sizes
+    max_window_height: int = 1024  # height in px; width = height * 0.75 (4:3)
     ship: ShipConfig = None  # type: ignore[assignment]
     enemies: EnemyConfig = None  # type: ignore[assignment]
     background: BackgroundConfig = None  # type: ignore[assignment]
