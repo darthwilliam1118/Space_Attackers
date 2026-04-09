@@ -6,10 +6,11 @@ Need to rack and stack
 - [ ] Power ups (Shields, better gun, HP repair) (major)
 - [ ] Boss Levels (major)
 - [ ] Bonus Levels (major)
-- [ ] Pausing (minor)
+- [x] Pausing (minor)
 - [ ] Sane debug mode with short-cut keys and on-screen overlays (medium)
-- [ ] Volume level for music and sounds (minor)
-- [ ] UI selection for start level for each game (minor)
+- [X] Volume level for music and sounds (minor)
+- [X] UI selection for start level for each game (minor)
+- [ ] Scale sprites down to make screen virtually larger
 ## Someday Maybe
 - [ ] 2 player simultaneous mode, single keyboard (major)
 - [ ] 2 player LAN mode, 2 computers

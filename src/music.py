@@ -36,6 +36,7 @@ class MusicPlayer:
         self._sounds: dict[str, arcade.Sound] = {}
         self._current_key: Optional[str] = None
         self._player: Optional[object] = None  # pyglet.media.player.Player returned by arcade.play_sound
+        self._volume: float = 0.8  # 0.0-1.0
         # All tracks are lazy-loaded: load_track() / play() on demand
 
     def load_track(self, key: str) -> None:
@@ -50,7 +51,23 @@ class MusicPlayer:
         self.stop()
         self.load_track(key)  # lazy fallback in case preload was skipped
         self._current_key = key
-        self._player = arcade.play_sound(self._sounds[key], loop=True)
+        self._player = arcade.play_sound(self._sounds[key], volume=self._volume, loop=True)
+
+    def set_volume(self, volume_0_100: int) -> None:
+        """Set music volume (0-100).  Applies immediately to any playing track."""
+        self._volume = max(0, min(100, volume_0_100)) / 100.0
+        if self._player is not None:
+            self._player.volume = self._volume  # type: ignore[union-attr]
+
+    def pause(self) -> None:
+        """Pause playback without losing the current track."""
+        if self._player is not None:
+            self._player.pause()  # type: ignore[union-attr]
+
+    def resume(self) -> None:
+        """Resume a paused track."""
+        if self._player is not None:
+            self._player.play()  # type: ignore[union-attr]
 
     def stop(self) -> None:
         """Stop whatever is currently playing."""

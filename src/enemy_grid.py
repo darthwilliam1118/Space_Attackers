@@ -111,9 +111,11 @@ class EnemyGrid:
         total_span = (self._cols - 1) * col_spacing
         self._origin_x = w / 2.0 - total_span / 2.0
 
-        # Vertical layout: topmost row at 80% of window height
+        # Vertical layout: topmost row at 80% of window height.
+        # Row spacing matches column spacing so the grid stays square regardless
+        # of how many rows are configured — extra rows extend downward.
         top_y = h * 0.80
-        row_spacing = (h * 0.30) / max(cfg.enemy_rows_max - 1, 1)
+        row_spacing = col_spacing
 
         self._origin_y = top_y
         self._spawn_y = top_y

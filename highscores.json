@@ -1,5 +1,10 @@
 [
   {
+    "name": "WOWSER",
+    "score": 6050,
+    "date": "2026-04-09"
+  },
+  {
     "name": "IMPOSSIBLE",
     "score": 5980,
     "date": "2026-04-07"
@@ -43,10 +48,5 @@
     "name": "XX",
     "score": 530,
     "date": "2026-04-08"
-  },
-  {
-    "name": "BILL",
-    "score": 70,
-    "date": "2026-03-22"
   }
 ]

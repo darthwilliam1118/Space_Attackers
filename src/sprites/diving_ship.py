@@ -38,6 +38,8 @@ class DivingShip(arcade.Sprite):
     _ARRIVAL_THRESHOLD: float = 4.0
     # Degrees per second the ship rotates back to upright during RETURNING.
     _ANGLE_RETURN_RATE: float = 180.0
+    # Horizontal distance (pixels) to player that triggers bomb release.
+    _AIM_THRESHOLD: float = 30.0
 
     def __init__(
         self,
@@ -77,8 +79,9 @@ class DivingShip(arcade.Sprite):
         self._has_fired_bomb: bool = False
         self._pending_bomb: Optional["EnemyBullet"] = None  # set when bomb is fired
 
-        # Bomb trigger threshold
-        self._bomb_threshold: float = window_height * 0.55
+        # Lowest y on the dive path — fallback fire point if player aim never lines up.
+        self._lowest_path_y: float = min(y for _, y in waypoints)
+        self._past_lowest: bool = False  # flips True once we start climbing back up
 
     # ------------------------------------------------------------------
     # Public API
@@ -113,11 +116,20 @@ class DivingShip(arcade.Sprite):
             return
 
         if self._state == DiveState.DIVING:
+            prev_y = self.center_y
             self._advance_path(delta_time)
 
-            # Bomb trigger: fire once when crossing below midscreen (forward path only)
-            if not self._has_fired_bomb and self.center_y < self._bomb_threshold:
-                self._fire_bomb(player_x)
+            if not self._has_fired_bomb:
+                # Detect when we've passed the lowest point and are climbing back up
+                if not self._past_lowest and self.center_y > prev_y:
+                    self._past_lowest = True
+
+                # Fire when horizontally over the player
+                if abs(self.center_x - player_x) <= self._AIM_THRESHOLD:
+                    self._fire_bomb()
+                # Fallback: fire at the lowest point if we just passed it
+                elif self._past_lowest:
+                    self._fire_bomb()
 
             return
 
@@ -212,7 +224,7 @@ class DivingShip(arcade.Sprite):
             else:
                 self.angle = (self.angle + rot_delta) % 360.0
 
-    def _fire_bomb(self, player_x: float) -> None:
+    def _fire_bomb(self) -> None:
         from src.sprites.enemy_bullet import EnemyBullet
         self._has_fired_bomb = True
         self._pending_bomb = EnemyBullet(

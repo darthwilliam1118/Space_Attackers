@@ -11,11 +11,20 @@ if TYPE_CHECKING:
 
 from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
 
-_FIELDS = ["starting_level", "num_lives", "spawn_safe_radius"]
+_FIELDS = ["starting_level", "num_lives", "spawn_safe_radius", "music_volume", "effects_volume"]
 _FIELD_LABELS = {
     "starting_level": "Starting Level",
     "num_lives": "Number of Lives",
     "spawn_safe_radius": "Spawn Safe Radius (px)",
+    "music_volume": "Music Volume (0-100)",
+    "effects_volume": "Effects Volume (0-100)",
+}
+_FIELD_CLAMP = {
+    "starting_level": (1, 999),
+    "num_lives": (1, 99),
+    "spawn_safe_radius": (0, 9999),
+    "music_volume": (0, 100),
+    "effects_volume": (0, 100),
 }
 
 
@@ -33,6 +42,12 @@ class GameConfigView(arcade.View):
         self._field_texts: list[arcade.Text] = []
         self._hint_text: Optional[arcade.Text] = None
 
+        # Key-repeat state for LEFT/RIGHT held
+        self._repeat_key: Optional[int] = None   # arcade.key.LEFT or RIGHT
+        self._repeat_initial: float = 0.4        # seconds before repeat starts
+        self._repeat_interval: float = 0.08      # seconds between repeats
+        self._repeat_timer: float = 0.0
+
     def on_show_view(self) -> None:
         self.window.music.play("ending")  # type: ignore[attr-defined]
         w, h = self.window.width, self.window.height
@@ -40,9 +55,10 @@ class GameConfigView(arcade.View):
             "GAME CONFIG", w, h - 80,
             font_size=40, color=arcade.color.CYAN, font_name=FONT_MAIN, bold=True,
         )
+        top_y = h // 2 + (len(_FIELDS) // 2) * 46
         self._field_texts = [
             centered_text(
-                "", w, h // 2 + 40 - i * 50,
+                "", w, top_y - i * 46,
                 font_size=22, color=arcade.color.WHITE, font_name=FONT_THIN,
             )
             for i in range(len(_FIELDS))
@@ -55,6 +71,12 @@ class GameConfigView(arcade.View):
 
     def on_update(self, delta_time: float) -> None:
         self.window.star_field.update(delta_time)  # type: ignore[attr-defined]
+        if self._repeat_key is not None:
+            self._repeat_timer -= delta_time
+            if self._repeat_timer <= 0.0:
+                delta = -1 if self._repeat_key == arcade.key.LEFT else 1
+                self._adjust(delta)
+                self._repeat_timer = self._repeat_interval
 
     def on_draw(self) -> None:
         self.clear()
@@ -79,17 +101,29 @@ class GameConfigView(arcade.View):
                 self._refresh_fields()
             case arcade.key.LEFT:
                 self._adjust(-1)
+                self._repeat_key = arcade.key.LEFT
+                self._repeat_timer = self._repeat_initial
             case arcade.key.RIGHT:
                 self._adjust(1)
+                self._repeat_key = arcade.key.RIGHT
+                self._repeat_timer = self._repeat_initial
             case arcade.key.ESCAPE:
                 self._cfg.save()
                 self._manager.context["config"] = self._cfg
                 self._manager.transition(GameState.MAIN)
 
+    def on_key_release(self, key: int, modifiers: int) -> None:
+        if key in (arcade.key.LEFT, arcade.key.RIGHT):
+            self._repeat_key = None
+
     def _adjust(self, delta: int) -> None:
         field = _FIELDS[self._selected]
         current = getattr(self._cfg, field)
-        setattr(self._cfg, field, max(1, current + delta))
+        lo, hi = _FIELD_CLAMP.get(field, (1, 999))
+        setattr(self._cfg, field, max(lo, min(hi, current + delta)))
+        # Apply volume changes immediately so the user can hear the effect
+        if field == "music_volume":
+            self.window.music.set_volume(self._cfg.music_volume)  # type: ignore[attr-defined]
         self._refresh_fields()
 
     def _refresh_fields(self) -> None:

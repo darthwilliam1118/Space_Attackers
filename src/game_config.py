@@ -32,6 +32,8 @@ class GameConfig:
     starting_level: int = 1
     num_lives: int = 3
     spawn_safe_radius: int = 80
+    music_volume: int = 80   # 0-100
+    effects_volume: int = 80  # 0-100
     debug: bool = False
     god_mode: bool = False
     max_window_height: int = 1024  # height in px; width = height * 0.75 (4:3)
@@ -152,6 +154,8 @@ class GameConfig:
             starting_level=int(game.get("starting_level", cls.starting_level)),
             num_lives=int(game.get("num_lives", cls.num_lives)),
             spawn_safe_radius=int(game.get("spawn_safe_radius", cls.spawn_safe_radius)),
+            music_volume=int(game.get("music_volume", cls.music_volume)),
+            effects_volume=int(game.get("effects_volume", cls.effects_volume)),
             debug=bool(game.get("debug", cls.debug)),
             god_mode=bool(game.get("god_mode", cls.god_mode)),
             max_window_height=int(game.get("max_window_height", 0)),
@@ -173,6 +177,8 @@ class GameConfig:
             f"starting_level = {self.starting_level}\n",
             f"num_lives = {self.num_lives}\n",
             f"spawn_safe_radius = {self.spawn_safe_radius}\n",
+            f"music_volume = {self.music_volume}\n",
+            f"effects_volume = {self.effects_volume}\n",
             f"debug = {'true' if self.debug else 'false'}\n",
             f"god_mode = {'true' if self.god_mode else 'false'}\n",
             f"max_window_height = {self.max_window_height}\n",

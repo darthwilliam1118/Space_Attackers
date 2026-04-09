@@ -121,11 +121,11 @@ class RunLevelView(arcade.View):
         self._hud = HUD(self.window.width, self.window.height, num_players)
         if self._debug:
             self._debug_text = centered_text(
-                "Shift+E = Clear enemies",
+                "Shift+E = Clear enemies  |  Shift+D = Force dive",
                 self.window.width,
-                self.window.height - 20,
+                self.window.height - 10,
                 font_size=11,
-                color=(80, 80, 80, 255),
+                color=(180, 180, 180, 255),
                 font_name=FONT_THIN,
             )
 
@@ -268,7 +268,7 @@ class RunLevelView(arcade.View):
                     self._explosions.append(exp)
                     bullet.remove_from_sprite_lists()
                     if self._snd_enemy_killed is not None:
-                        arcade.play_sound(self._snd_enemy_killed)
+                        arcade.play_sound(self._snd_enemy_killed, volume=self._sfx_volume())
                     self._update_score(points)
                     cfg = self._manager.context.get("config")
                     ui_cfg: UIConfig = cfg.ui if cfg is not None else UIConfig()
@@ -288,7 +288,7 @@ class RunLevelView(arcade.View):
         bullets_before = len(self._grid.get_bullet_sprite_list())
         events = self._grid.update(delta_time, collision_target)
         if len(self._grid.get_bullet_sprite_list()) > bullets_before and self._snd_enemy_shoot is not None:
-            arcade.play_sound(self._snd_enemy_shoot)
+            arcade.play_sound(self._snd_enemy_shoot, volume=self._sfx_volume())
 
         # Spawn explosions for grid enemies that collided with the player
         for hit_x, hit_y, _ in self._grid.consume_pending_hits():
@@ -296,7 +296,7 @@ class RunLevelView(arcade.View):
             self._explosions.append(exp)
             self.spawn_destruction_effect(hit_x, hit_y, 0.0, 0.0)
             if self._snd_enemy_killed is not None:
-                arcade.play_sound(self._snd_enemy_killed)
+                arcade.play_sound(self._snd_enemy_killed, volume=self._sfx_volume())
 
         _cfg = self._manager.context.get("config")
         god_mode: bool = _cfg.god_mode if _cfg is not None else False
@@ -330,7 +330,7 @@ class RunLevelView(arcade.View):
                 self._explosions.append(exp)
                 self.spawn_destruction_effect(hit_x, hit_y, 0.0, 0.0)
                 if self._snd_enemy_killed is not None:
-                    arcade.play_sound(self._snd_enemy_killed)
+                    arcade.play_sound(self._snd_enemy_killed, volume=self._sfx_volume())
             for event in dive_events:
                 if event == GameEvent.PLAYER_KILLED:
                     if not god_mode:
@@ -401,6 +401,10 @@ class RunLevelView(arcade.View):
 
         if key == arcade.key.P:
             self._paused = not self._paused
+            if self._paused:
+                self.window.music.pause()  # type: ignore[attr-defined]
+            else:
+                self.window.music.resume()  # type: ignore[attr-defined]
             return
 
         self._keys_held.add(key)
@@ -415,6 +419,11 @@ class RunLevelView(arcade.View):
     # Private helpers
     # ------------------------------------------------------------------
 
+    def _sfx_volume(self) -> float:
+        """Return effects volume (0.0-1.0) from config."""
+        cfg = self._manager.context.get("config")
+        return (cfg.effects_volume / 100.0) if cfg is not None else 1.0
+
     def _fire(self) -> None:
         if self._ship is None:
             return
@@ -422,7 +431,7 @@ class RunLevelView(arcade.View):
         if bullet is not None:
             self._player_bullets.append(bullet)
             if self._snd_player_shoot is not None:
-                arcade.play_sound(self._snd_player_shoot)
+                arcade.play_sound(self._snd_player_shoot, volume=self._sfx_volume())
 
     def _trigger_death(self) -> None:
         """Begin death sequence: explosion plays, then PLAYER_KILLED transition."""
@@ -431,7 +440,7 @@ class RunLevelView(arcade.View):
         self._dying = True
         self._death_timer = 0.0
         if self._snd_player_killed is not None:
-            arcade.play_sound(self._snd_player_killed)
+            arcade.play_sound(self._snd_player_killed, volume=self._sfx_volume())
         vx, vy = self._ship.velocity
         x, y = self._ship.center_x, self._ship.center_y
         explosion = self._ship.kill(vx=vx, vy=vy)

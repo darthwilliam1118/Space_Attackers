@@ -23,6 +23,7 @@ class GameWindow(arcade.Window):
         self.background = StaticBackground(bg.background_image, w, h)
         self.star_field = ProceduralStarField(w, h, bg.star_count, bg.star_speed_min, bg.star_speed_max)
         self.music = MusicPlayer()
+        self.music.set_volume(cfg.music_volume)
         self._manager = GameStateManager(self)
         self._manager.transition(GameState.SPLASH)
 
