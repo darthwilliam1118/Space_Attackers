@@ -46,6 +46,8 @@ class EnemyGrid:
         self._origin_y: float = 0.0
 
         self._direction: float = 1.0          # 1 = right, -1 = left
+        self._drop_direction: int = -1        # -1 = dropping, +1 = rising
+        self._spawn_y: float = 0.0            # ceiling: grid rises back to this Y
         self._level: int = 1
         self._speed: float = config.enemy_speed_initial
         self._total_enemies: int = 0
@@ -65,6 +67,7 @@ class EnemyGrid:
         # so they stay valid as the grid moves (no need to update in _move()).
         self._last_right_col: int = 0
         self._last_left_col: int = 0
+        self._last_bottom_row: int = 0   # cached bottom row index for airborne fallback
 
         self._sprite_list = arcade.SpriteList(use_spatial_hash=True)
         self._bullet_list = arcade.SpriteList(use_spatial_hash=False)
@@ -112,6 +115,9 @@ class EnemyGrid:
         row_spacing = (h * 0.30) / max(cfg.enemy_rows_max - 1, 1)
 
         self._origin_y = top_y
+        self._spawn_y = top_y
+        self._drop_direction = -1
+        self._last_bottom_row = self._rows - 1
 
         self._col_offsets = [c * col_spacing for c in range(self._cols)]
         self._row_offsets = [r * (-row_spacing) for r in range(self._rows)]
@@ -365,6 +371,7 @@ class EnemyGrid:
             if right_edge >= self._window_width - margin:
                 self._direction = -1.0
                 self._drop(drop)
+                self._check_vertical_boundary()
                 if self._debug:
                     print(
                         f"[GRID] BOUNCE >< at right_col={right_col} "
@@ -374,6 +381,7 @@ class EnemyGrid:
             if left_edge <= margin:
                 self._direction = 1.0
                 self._drop(drop)
+                self._check_vertical_boundary()
                 if self._debug:
                     print(
                         f"[GRID] BOUNCE <> at left_col={left_col} "
@@ -416,6 +424,9 @@ class EnemyGrid:
             "projectiles": projectiles,
             "origin_x": self._origin_x,
             "origin_y": self._origin_y,
+            "drop_direction": self._drop_direction,
+            "spawn_y": self._spawn_y,
+            "last_bottom_row": self._last_bottom_row,
             "col_offsets": list(self._col_offsets),
             "row_offsets": list(self._row_offsets),
             "total_enemies": self._total_enemies,
@@ -456,6 +467,9 @@ class EnemyGrid:
         grid._speed = float(snapshot.get("speed", config.enemy_speed_initial))
         grid._origin_x = float(snapshot.get("origin_x", 0.0))
         grid._origin_y = float(snapshot.get("origin_y", 0.0))
+        grid._drop_direction = int(snapshot.get("drop_direction", -1))
+        grid._spawn_y = float(snapshot.get("spawn_y", grid._origin_y))
+        grid._last_bottom_row = int(snapshot.get("last_bottom_row", grid._rows - 1))
         grid._col_offsets = list(snapshot.get("col_offsets", []))
         grid._row_offsets = list(snapshot.get("row_offsets", []))
         grid._total_enemies = int(snapshot.get("total_enemies", 1))
@@ -512,6 +526,32 @@ class EnemyGrid:
     # Private helpers
     # ------------------------------------------------------------------
 
+    def _check_vertical_boundary(self) -> None:
+        """Flip drop direction at bottom margin or spawn Y ceiling.
+
+        Uses cached bottom row index as fallback when all ships are airborne,
+        mirroring the _last_right_col / _last_left_col pattern.
+        """
+        sprites = list(self._sprite_list)  # type: ignore[attr-defined]
+        if sprites:
+            bottom_row = max(s.row for s in sprites)
+            self._last_bottom_row = bottom_row
+        elif self._row_offsets:
+            bottom_row = self._last_bottom_row
+        else:
+            return
+
+        bottom_y = self._origin_y + self._row_offsets[bottom_row]
+
+        if self._drop_direction == -1 and bottom_y <= self._config.enemy_bottom_margin:
+            self._drop_direction = 1
+        elif self._drop_direction == 1 and self._origin_y >= self._spawn_y:
+            # Snap to ceiling to avoid float drift, then resume dropping
+            self._origin_y = self._spawn_y
+            for s in sprites:
+                s.center_y = self._origin_y + self._row_offsets[s.row]
+            self._drop_direction = -1
+
     def _update_col_cache(self) -> None:
         """Recompute cached outermost column indices from current sprite list."""
         sprites = list(self._sprite_list)
@@ -538,7 +578,8 @@ class EnemyGrid:
             self._oob_check(sprite, "_move")
 
     def _drop(self, distance: float) -> None:
-        self._origin_y -= distance
+        delta = distance * self._drop_direction   # negative = down, positive = up
+        self._origin_y += delta
         for sprite in self._sprite_list:  # type: ignore[attr-defined]
-            sprite.center_y -= distance
+            sprite.center_y += delta
             self._oob_check(sprite, "_drop")

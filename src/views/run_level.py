@@ -153,18 +153,16 @@ class RunLevelView(arcade.View):
         # Death sequence: let animations run for up to 2 seconds, then transition
         if self._dying:
             self._death_timer += delta_time
-            if self._death_explosion is not None:
-                self._death_explosion.update(delta_time)
             for exp in list(self._explosions):
                 exp.update(delta_time)
             for bullet in list(self._player_bullets):
                 bullet.update(delta_time)  # type: ignore[arg-type]
             if self._grid is not None:
-                for bullet in list(self._grid.get_bullet_sprite_list()):
-                    bullet.update(delta_time)
+                self._grid.update(delta_time, None)  # keep enemy animations alive; no player to collide
             if self._dive_controller is not None:
-                for bomb in list(self._dive_controller.get_all_bullets()):
-                    bomb.update(delta_time)
+                self._dive_controller.update(
+                    delta_time, self._grid, None, arcade.SpriteList()
+                )
             for popup in self._score_popups:
                 popup.update(delta_time)
             self._score_popups = [p for p in self._score_popups if not p.is_done]
@@ -227,6 +225,9 @@ class RunLevelView(arcade.View):
                 bullet.update(delta_time)  # type: ignore[arg-type]
             if self._grid is not None:
                 for bullet in list(self._grid.get_bullet_sprite_list()):
+                    bullet.update(delta_time)
+            if self._dive_controller is not None:
+                for bullet in list(self._dive_controller.get_all_bullets()):
                     bullet.update(delta_time)
             if not self._explosions:
                 self._manager.transition(GameState.LEVEL_COMPLETE)

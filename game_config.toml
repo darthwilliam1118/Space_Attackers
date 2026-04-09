@@ -42,6 +42,7 @@ enemy_fire_interval_scale = 0.95
 enemy_fire_interval_min_cap = 1.0
 enemy_fire_interval_max_cap = 2.0
 enemy_bullet_speed = 250.0
+enemy_bottom_margin = 150.0
 
 [ui]
 popup_duration = 0.8

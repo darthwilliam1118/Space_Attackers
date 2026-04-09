@@ -103,6 +103,7 @@ class GameConfig:
             enemy_speed_level_pct=float(ec_raw.get("enemy_speed_level_pct", EnemyConfig.enemy_speed_level_pct)),
             enemy_side_margin=float(ec_raw.get("enemy_side_margin", EnemyConfig.enemy_side_margin)),
             enemy_drop_distance=float(ec_raw.get("enemy_drop_distance", EnemyConfig.enemy_drop_distance)),
+            enemy_bottom_margin=float(ec_raw.get("enemy_bottom_margin", EnemyConfig.enemy_bottom_margin)),
             enemy_fire_interval_min_l1=float(ec_raw.get("enemy_fire_interval_min_l1", EnemyConfig.enemy_fire_interval_min_l1)),
             enemy_fire_interval_max_l1=float(ec_raw.get("enemy_fire_interval_max_l1", EnemyConfig.enemy_fire_interval_max_l1)),
             enemy_fire_interval_scale=float(ec_raw.get("enemy_fire_interval_scale", EnemyConfig.enemy_fire_interval_scale)),

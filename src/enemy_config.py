@@ -22,6 +22,7 @@ class EnemyConfig:
     enemy_speed_level_pct: float = 0.15   # multiplicative per-level base speed increase
     enemy_side_margin: float = 40.0
     enemy_drop_distance: float = 48.0
+    enemy_bottom_margin: float = 150.0
 
     # Shooting — intervals scale by enemy_fire_interval_scale each level
     enemy_fire_interval_min_l1: float = 3.0
