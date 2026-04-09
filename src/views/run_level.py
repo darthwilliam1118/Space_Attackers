@@ -285,6 +285,14 @@ class RunLevelView(arcade.View):
         if len(self._grid.get_bullet_sprite_list()) > bullets_before and self._snd_enemy_shoot is not None:
             arcade.play_sound(self._snd_enemy_shoot)
 
+        # Spawn explosions for grid enemies that collided with the player
+        for hit_x, hit_y, _ in self._grid.consume_pending_hits():
+            exp = ExplosionSprite(x=hit_x, y=hit_y, frame_duration=0.05)
+            self._explosions.append(exp)
+            self.spawn_destruction_effect(hit_x, hit_y, 0.0, 0.0)
+            if self._snd_enemy_killed is not None:
+                arcade.play_sound(self._snd_enemy_killed)
+
         _cfg = self._manager.context.get("config")
         god_mode: bool = _cfg.god_mode if _cfg is not None else False
 

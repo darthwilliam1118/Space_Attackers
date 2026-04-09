@@ -69,6 +69,7 @@ class EnemyGrid:
         self._last_left_col: int = 0
         self._last_bottom_row: int = 0   # cached bottom row index for airborne fallback
 
+        self._pending_hits: list[tuple[float, float, int]] = []  # (cx, cy, points) for body collisions
         self._sprite_list = arcade.SpriteList(use_spatial_hash=True)
         self._bullet_list = arcade.SpriteList(use_spatial_hash=False)
 
@@ -223,9 +224,14 @@ class EnemyGrid:
                 events.append(GameEvent.PLAYER_KILLED)
                 return events
 
-            # Collision: enemy sprite vs player ship
+            # Collision: enemy sprite vs player ship — remove enemy and queue explosion
             hits = arcade.check_for_collision_with_list(player_ship, self._sprite_list)
             if hits:
+                for enemy in hits:
+                    self._pending_hits.append((enemy.center_x, enemy.center_y, 0))
+                    enemy.remove_from_sprite_lists()
+                    self._enemies_destroyed += 1
+                self.recalculate_speed()
                 events.append(GameEvent.PLAYER_KILLED)
                 return events
 
@@ -285,6 +291,12 @@ class EnemyGrid:
 
     def get_bullet_sprite_list(self) -> arcade.SpriteList:
         return self._bullet_list
+
+    def consume_pending_hits(self) -> list[tuple[float, float, int]]:
+        """Return and clear body-collision hits queued this frame (cx, cy, points)."""
+        hits = self._pending_hits
+        self._pending_hits = []
+        return hits
 
     # ------------------------------------------------------------------
     # Dive hooks
