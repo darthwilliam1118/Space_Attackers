@@ -1,6 +1,6 @@
 [game]
-starting_level = 1
-num_lives = 3
+starting_level = 5
+num_lives = 10
 spawn_safe_radius = 80
 debug = false
 # max_window_height: window height in pixels; width = height * 0.75. Lower to test smaller screens.
@@ -33,16 +33,28 @@ enemy_rows_per_level = 1
 enemy_col_width_factor = 1.2
 enemy_speed_initial = 30.0
 enemy_speed_max_bonus = 150.0
-enemy_speed_level_pct = 0.15
-enemy_side_margin = 40.0
-enemy_drop_distance = 48.0
-enemy_fire_interval_min_l1 = 3.0
-enemy_fire_interval_max_l1 = 6.0
-enemy_fire_interval_scale = 0.85
-enemy_fire_interval_min_cap = 0.5
-enemy_fire_interval_max_cap = 1.0
+enemy_speed_level_pct = 0.10
+enemy_side_margin = 60.0
+enemy_drop_distance = 32.0
+enemy_fire_interval_min_l1 = 4.0
+enemy_fire_interval_max_l1 = 8.0
+enemy_fire_interval_scale = 0.95
+enemy_fire_interval_min_cap = 1.0
+enemy_fire_interval_max_cap = 2.0
 enemy_bullet_speed = 250.0
 
 [ui]
 popup_duration = 0.8
 popup_rise_speed = 60.0
+
+[diving]
+dive_group_size_max = 4
+dive_interval_base = 12.0
+dive_interval_step = 1.0
+dive_interval_min = 4.0
+dive_speed_base = 300.0
+dive_speed_step = 25.0
+dive_speed_max = 500.0
+dive_bomb_speed = 250.0
+dive_bonus_points = 20
+dive_return_speed = 250.0

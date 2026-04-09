@@ -9,6 +9,7 @@ import arcade
 if TYPE_CHECKING:
     from src.state import GameStateManager
 
+from src.dive_controller import DiveController
 from src.enemy_grid import EnemyGrid
 from src.game_event import GameEvent
 from src.music import track_key_for_level
@@ -56,6 +57,9 @@ class RunLevelView(arcade.View):
         self._death_timer: float = 0.0
         self._level_cleared: bool = False
 
+        self._dive_controller: Optional[DiveController] = None
+        self._waiting_for_dives: bool = False  # 2P: wait for airborne ships after death
+
         self._score_popups: list[ScorePopup] = []
 
         self._hud: Optional[HUD] = None
@@ -90,6 +94,7 @@ class RunLevelView(arcade.View):
         )
         self._ship_list.append(self._ship)
         self._grid = ctx.get("enemy_grid")
+        self._dive_controller = ctx.get("dive_controller")
         self._debug = cfg.debug if cfg else False
         if cfg is not None:
             self._particle_emitter = ParticleEmitter(cfg.particles)
@@ -125,6 +130,19 @@ class RunLevelView(arcade.View):
     def on_update(self, delta_time: float) -> None:
         from src.state import GameState
 
+        delta_time = min(delta_time, 1.0 / 15.0)  # cap to ~66ms to survive debugger pauses
+
+        # Guard: respawned into an empty level (last enemy died during death sequence)
+        if not self._dying and not self._waiting_for_dives and not self._level_cleared:
+            grid_empty = self._grid is None or self._grid.is_cleared()
+            no_airborne = (
+                self._dive_controller is None
+                or not self._dive_controller.has_any_airborne()
+            )
+            if grid_empty and no_airborne:
+                self._level_cleared = True
+                return
+
         self.window.star_field.update(delta_time)  # type: ignore[attr-defined]
 
         if self._particle_emitter is not None:
@@ -144,6 +162,9 @@ class RunLevelView(arcade.View):
             if self._grid is not None:
                 for bullet in list(self._grid.get_bullet_sprite_list()):
                     bullet.update(delta_time)
+            if self._dive_controller is not None:
+                for bomb in list(self._dive_controller.get_all_bullets()):
+                    bomb.update(delta_time)
             for popup in self._score_popups:
                 popup.update(delta_time)
             self._score_popups = [p for p in self._score_popups if not p.is_done]
@@ -151,7 +172,30 @@ class RunLevelView(arcade.View):
                 self._death_explosion is None or self._death_explosion.is_complete
             )
             if explosion_done or self._death_timer >= 2.0:
-                self._manager.transition(GameState.PLAYER_KILLED)
+                ctx = self._manager.context
+                num_players = len(ctx.get("players", []))
+                if (
+                    self._dive_controller is not None
+                    and self._dive_controller.has_any_airborne()
+                ):
+                    self._dying = False
+                    self._waiting_for_dives = True
+                    self._dive_controller.new_dive_launches_blocked = True
+                else:
+                    self._manager.transition(GameState.PLAYER_KILLED)
+            return
+
+        # 2P wait: dives must complete before we snapshot and switch players
+        if self._waiting_for_dives:
+            if self._grid is not None:
+                self._grid.update(delta_time, None)  # grid moves; no player to collide
+            if self._dive_controller is not None:
+                self._dive_controller.update(
+                    delta_time, self._grid, None, arcade.SpriteList()
+                )
+                if not self._dive_controller.has_any_airborne():
+                    self._waiting_for_dives = False
+                    self._manager.transition(GameState.PLAYER_KILLED)
             return
 
         if self._ship is None:
@@ -188,6 +232,15 @@ class RunLevelView(arcade.View):
                 self._manager.transition(GameState.LEVEL_COMPLETE)
             return
 
+        # Helper: both grid and dive controller must be empty for the level to clear
+        def _is_level_cleared() -> bool:
+            grid_empty = self._grid is None or self._grid.is_cleared()
+            no_airborne = (
+                self._dive_controller is None
+                or not self._dive_controller.has_any_airborne()
+            )
+            return grid_empty and no_airborne
+
         if self._grid is None:
             return
 
@@ -219,7 +272,7 @@ class RunLevelView(arcade.View):
                         rise_speed=ui_cfg.popup_rise_speed,
                     ))
                     self.spawn_destruction_effect(hit_x, hit_y, vx, vy)
-                    if self._grid.is_cleared():
+                    if _is_level_cleared():
                         self._level_cleared = True
                         return
 
@@ -239,6 +292,36 @@ class RunLevelView(arcade.View):
                 self._manager.transition(GameState.LEVEL_COMPLETE)
                 return
 
+        # Dive controller: update and handle events
+        if self._dive_controller is not None:
+            dive_events = self._dive_controller.update(
+                delta_time, self._grid, self._ship, self._player_bullets
+            )
+            # Spawn effects for destroyed diving ships
+            ctx = self._manager.context
+            cfg = ctx.get("config")
+            ui_cfg: UIConfig = cfg.ui if cfg is not None else UIConfig()
+            for hit_x, hit_y, points in self._dive_controller.consume_pending_hits():
+                self._update_score(points)
+                self._score_popups.append(ScorePopup(
+                    hit_x, hit_y, points,
+                    duration=ui_cfg.popup_duration,
+                    rise_speed=ui_cfg.popup_rise_speed,
+                ))
+                exp = ExplosionSprite(x=hit_x, y=hit_y, frame_duration=0.05)
+                self._explosions.append(exp)
+                self.spawn_destruction_effect(hit_x, hit_y, 0.0, 0.0)
+                if self._snd_enemy_killed is not None:
+                    arcade.play_sound(self._snd_enemy_killed)
+            for event in dive_events:
+                if event == GameEvent.PLAYER_KILLED:
+                    self._trigger_death()
+                    return
+                elif event == GameEvent.ENEMY_DESTROYED:
+                    if _is_level_cleared():
+                        self._level_cleared = True
+                        return
+
     def on_draw(self) -> None:
         self.clear()
         self.window.background.draw()  # type: ignore[attr-defined]
@@ -247,6 +330,10 @@ class RunLevelView(arcade.View):
         if self._grid is not None:
             self._grid.get_sprite_list().draw()
             self._grid.get_bullet_sprite_list().draw()
+
+        if self._dive_controller is not None:
+            self._dive_controller.get_all_sprites().draw()
+            self._dive_controller.get_all_bullets().draw()
 
         self._player_bullets.draw()
         self._ship_list.draw()
@@ -269,6 +356,17 @@ class RunLevelView(arcade.View):
 
         if self._debug and key == arcade.key.E and (modifiers & arcade.key.MOD_SHIFT):
             self._manager.transition(GameState.LEVEL_COMPLETE)
+            return
+
+        if (
+            self._debug
+            and key == arcade.key.D
+            and (modifiers & arcade.key.MOD_SHIFT)
+            and self._dive_controller is not None
+            and self._grid is not None
+            and self._ship is not None
+        ):
+            self._dive_controller.launch_group(self._grid, self._ship.center_x)
             return
 
         self._keys_held.add(key)

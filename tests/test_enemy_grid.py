@@ -175,10 +175,9 @@ class TestBoundary:
     def test_reversal_triggered_at_right_margin(self) -> None:
         g = _grid(enemy_cols=1, enemy_rows=1, enemy_side_margin=40,
                   enemy_speed_initial=100)
-        # Force rightmost enemy close to right edge
-        for s in g.get_sprite_list():
-            s.center_x = W - 40 - s.width / 2 + 1  # just past margin
-        g._origin_x = list(g.get_sprite_list())[0].center_x
+        # For a 1-col grid _col_offsets=[0], so right_edge == _origin_x.
+        # Place origin just past the right margin.
+        g._origin_x = W - 40 + 1
         assert g._direction == 1.0
         g.check_boundary()
         assert g._direction == -1.0
@@ -187,8 +186,8 @@ class TestBoundary:
         g = _grid(enemy_cols=1, enemy_rows=1, enemy_side_margin=40,
                   enemy_speed_initial=100)
         g._direction = -1.0
-        for s in g.get_sprite_list():
-            s.center_x = 40 + s.width / 2 - 1  # just past left margin
+        # left_edge == _origin_x for a 1-col grid; place just past left margin.
+        g._origin_x = 40 - 1
         g.check_boundary()
         assert g._direction == 1.0
 
@@ -197,22 +196,38 @@ class TestBoundary:
         g = _grid(enemy_cols=1, enemy_rows=1, enemy_side_margin=40,
                   enemy_drop_distance=drop)
         initial_y = list(g.get_sprite_list())[0].center_y
-        for s in g.get_sprite_list():
-            s.center_x = W  # force right boundary
+        # Force right boundary via _origin_x (col_offsets=[0] for 1-col grid).
+        g._origin_x = W - 40 + 1
         g.check_boundary()
         new_y = list(g.get_sprite_list())[0].center_y
         assert initial_y - new_y == pytest.approx(drop)
 
     def test_boundary_uses_surviving_enemies_not_original_edge(self) -> None:
-        """Destroying the rightmost column shrinks effective boundary."""
+        """Destroying the rightmost column shrinks the effective boundary col."""
         g = _grid(enemy_cols=3, enemy_rows=1, enemy_side_margin=40,
                   enemy_speed_initial=0)
         sprites = sorted(g.get_sprite_list(), key=lambda s: s.center_x)
-        # Remove the rightmost enemy
+        # Remove the rightmost enemy (col 2)
         sprites[-1].remove_from_sprite_lists()
-        # New rightmost is the middle column
-        surviving_right = max(s.right for s in g.get_sprite_list())
-        assert surviving_right < W - 40
+        # After check_boundary, cached right col should be col 1 (middle)
+        g.check_boundary()
+        assert g._last_right_col == 1
+
+    def test_boundary_bounces_when_all_sprites_airborne(self) -> None:
+        """Grid must reverse direction using cached col indices when sprite list is empty."""
+        g = _grid(enemy_cols=3, enemy_rows=1, enemy_side_margin=40)
+        # Seed cached column extents by calling check_boundary with sprites present.
+        g.check_boundary()
+        # Force origin so rightmost col centre is past the right margin.
+        # right_edge = _origin_x + _col_offsets[-1]; we want it >= W - 40 = 760.
+        g._origin_x = W - 40 - g._col_offsets[-1] + 1
+        g._direction = 1.0
+        # Remove all sprites (simulates all ships currently diving).
+        for s in list(g.get_sprite_list()):
+            s.remove_from_sprite_lists()
+        assert len(g.get_sprite_list()) == 0
+        g.check_boundary()
+        assert g._direction == -1.0
 
 
 # ---------------------------------------------------------------------------

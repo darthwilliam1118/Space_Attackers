@@ -10,6 +10,7 @@
 ## Claude Code Behavior
 - When implementing a major new feature, make a plan and present for approval before editing any files
 - Ask any questions needed to resolve ambiguities or conflicts in the plan.
+- Don't use unicode characters in debug output just regular ascii
 
 ## Project Structure
 - Source code in src

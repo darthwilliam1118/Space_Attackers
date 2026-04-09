@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 from src.background_config import BackgroundConfig
+from src.diving_config import DivingConfig
 from src.enemy_config import EnemyConfig
 from src.particles_config import ParticlesConfig
 from src.ship_config import ShipConfig
@@ -38,6 +39,7 @@ class GameConfig:
     background: BackgroundConfig = None  # type: ignore[assignment]
     particles: ParticlesConfig = None  # type: ignore[assignment]
     ui: UIConfig = None  # type: ignore[assignment]
+    diving: DivingConfig = None  # type: ignore[assignment]
 
     def __post_init__(self) -> None:
         if self.ship is None:
@@ -50,6 +52,8 @@ class GameConfig:
             self.particles = ParticlesConfig()
         if self.ui is None:
             self.ui = UIConfig()
+        if self.diving is None:
+            self.diving = DivingConfig()
 
     @classmethod
     def load(cls, path: Optional[Path] = None) -> "GameConfig":
@@ -129,6 +133,19 @@ class GameConfig:
             popup_duration=float(ui_raw.get("popup_duration", UIConfig.popup_duration)),
             popup_rise_speed=float(ui_raw.get("popup_rise_speed", UIConfig.popup_rise_speed)),
         )
+        dc_raw = data.get("diving", {})
+        dc = DivingConfig(
+            dive_group_size_max=int(dc_raw.get("dive_group_size_max", DivingConfig.dive_group_size_max)),
+            dive_interval_base=float(dc_raw.get("dive_interval_base", DivingConfig.dive_interval_base)),
+            dive_interval_step=float(dc_raw.get("dive_interval_step", DivingConfig.dive_interval_step)),
+            dive_interval_min=float(dc_raw.get("dive_interval_min", DivingConfig.dive_interval_min)),
+            dive_speed_base=float(dc_raw.get("dive_speed_base", DivingConfig.dive_speed_base)),
+            dive_speed_step=float(dc_raw.get("dive_speed_step", DivingConfig.dive_speed_step)),
+            dive_speed_max=float(dc_raw.get("dive_speed_max", DivingConfig.dive_speed_max)),
+            dive_bomb_speed=float(dc_raw.get("dive_bomb_speed", DivingConfig.dive_bomb_speed)),
+            dive_bonus_points=int(dc_raw.get("dive_bonus_points", DivingConfig.dive_bonus_points)),
+            dive_return_speed=float(dc_raw.get("dive_return_speed", DivingConfig.dive_return_speed)),
+        )
         return cls(
             starting_level=int(game.get("starting_level", cls.starting_level)),
             num_lives=int(game.get("num_lives", cls.num_lives)),
@@ -140,6 +157,7 @@ class GameConfig:
             background=bc,
             particles=pc,
             ui=uc,
+            diving=dc,
         )
 
     def save(self, path: Optional[Path] = None) -> None:
@@ -200,5 +218,19 @@ class GameConfig:
             "\n[ui]\n",
             f"popup_duration = {uc.popup_duration}\n",
             f"popup_rise_speed = {uc.popup_rise_speed}\n",
+        ]
+        dv = self.diving
+        lines += [
+            "\n[diving]\n",
+            f"dive_group_size_max = {dv.dive_group_size_max}\n",
+            f"dive_interval_base = {dv.dive_interval_base}\n",
+            f"dive_interval_step = {dv.dive_interval_step}\n",
+            f"dive_interval_min = {dv.dive_interval_min}\n",
+            f"dive_speed_base = {dv.dive_speed_base}\n",
+            f"dive_speed_step = {dv.dive_speed_step}\n",
+            f"dive_speed_max = {dv.dive_speed_max}\n",
+            f"dive_bomb_speed = {dv.dive_bomb_speed}\n",
+            f"dive_bonus_points = {dv.dive_bonus_points}\n",
+            f"dive_return_speed = {dv.dive_return_speed}\n",
         ]
         path.write_text("".join(lines), encoding="utf-8")

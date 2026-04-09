@@ -135,6 +135,7 @@ class GameStateManager:
         self.transition(GameState.START_LEVEL)
 
     def _handle_start_level(self) -> None:
+        from src.dive_controller import DiveController
         from src.enemy_grid import EnemyGrid
         from src.spawn_safety import apply_spawn_safety
 
@@ -142,14 +143,19 @@ class GameStateManager:
         idx: int = self.context.get("active_player_index", 0)
         cfg = self.context.get("config")
 
+        from src.diving_config import DivingConfig
         from src.enemy_config import EnemyConfig
         enemy_cfg: EnemyConfig = cfg.enemies if cfg else EnemyConfig()
+        diving_cfg: DivingConfig = cfg.diving if cfg else DivingConfig()
+        debug: bool = cfg.debug if cfg else False
         w: int = self.window.width
         h: int = self.window.height
 
         grid: EnemyGrid
+        level: int = 1
         if players:
             player = players[idx]
+            level = player.current_level
             if player.level_snapshot is not None:
                 radius = cfg.spawn_safe_radius if cfg else 80
                 # Ship spawns at horizontal centre, bottom of movement zone
@@ -158,15 +164,27 @@ class GameStateManager:
                 spawn_y = h * ship_cfg.ship_zone_height_pct / 2.0
                 ship_spawn = (w / 2.0, spawn_y)
                 apply_spawn_safety(player.level_snapshot, ship_spawn, radius)
-                grid = EnemyGrid.from_snapshot(player.level_snapshot, enemy_cfg, w, h)
+                grid = EnemyGrid.from_snapshot(player.level_snapshot, enemy_cfg, w, h, debug=debug)
             else:
-                grid = EnemyGrid(enemy_cfg, w, h)
-                grid.setup(player.current_level)
+                grid = EnemyGrid(enemy_cfg, w, h, debug=debug)
+                grid.setup(level)
         else:
-            grid = EnemyGrid(enemy_cfg, w, h)
+            grid = EnemyGrid(enemy_cfg, w, h, debug=debug)
             grid.setup(1)
 
         self.context["enemy_grid"] = grid
+
+        # Restore or create DiveController
+        dive_snap = None
+        if players and players[idx].level_snapshot is not None:
+            dive_snap = players[idx].level_snapshot.get("diving")
+        if dive_snap is not None:
+            dive_ctrl = DiveController.from_snapshot(dive_snap, diving_cfg, w, h, debug=debug)
+        else:
+            dive_ctrl = DiveController(diving_cfg, w, h, debug=debug)
+            dive_ctrl.setup(level, enemy_grid=grid)
+        self.context["dive_controller"] = dive_ctrl
+
         self.transition(GameState.RUN_LEVEL)
 
     def _save_grid_snapshot(self) -> None:
@@ -175,28 +193,36 @@ class GameStateManager:
         Called before PLAYER_KILLED so the grid is preserved across respawns.
         In-flight enemy bullets are discarded — same policy as SAVE_SNAPSHOT_AND_SWITCH.
         """
+        from src.dive_controller import DiveController
         from src.enemy_grid import EnemyGrid
 
         players: list = self.context.get("players", [])
         idx: int = self.context.get("active_player_index", 0)
         grid: Optional[EnemyGrid] = self.context.get("enemy_grid")
+        dive_ctrl: Optional[DiveController] = self.context.get("dive_controller")
 
         if players and grid is not None:
             snapshot = grid.to_snapshot()
             snapshot.pop("projectiles", None)
+            if dive_ctrl is not None:
+                snapshot["diving"] = dive_ctrl.to_snapshot()
             players[idx].level_snapshot = snapshot
 
     def _handle_save_snapshot_and_switch(self) -> None:
         """Serialise level state for the active player, then switch."""
+        from src.dive_controller import DiveController
         from src.enemy_grid import EnemyGrid
 
         players: list = self.context.get("players", [])
         idx: int = self.context.get("active_player_index", 0)
         grid: Optional[EnemyGrid] = self.context.get("enemy_grid")
+        dive_ctrl: Optional[DiveController] = self.context.get("dive_controller")
 
         if players and grid is not None:
             snapshot = grid.to_snapshot()
             snapshot.pop("projectiles", None)  # discard in-flight projectiles
+            if dive_ctrl is not None:
+                snapshot["diving"] = dive_ctrl.to_snapshot()
             players[idx].level_snapshot = snapshot
 
         # Switch to the other player

@@ -28,12 +28,14 @@ class EnemyGrid:
         window_height: int,
         enemy_texture: Optional[arcade.Texture] = None,
         bullet_texture: Optional[arcade.Texture] = None,
+        debug: bool = False,
     ) -> None:
         self._config = config
         self._window_width = window_width
         self._window_height = window_height
         self._enemy_texture = enemy_texture
         self._bullet_texture = bullet_texture
+        self._debug = debug
 
         # Formation offsets: list of (col_offset, row_offset) per grid cell
         self._col_offsets: list[float] = []
@@ -57,6 +59,12 @@ class EnemyGrid:
 
         # Per-column shoot timers {col_index: seconds_until_next_shot}
         self._shoot_timers: dict[int, float] = {}
+
+        # Last known outermost occupied column indices — used as virtual bounds
+        # when all ships are temporarily airborne (diving).  Column-index based
+        # so they stay valid as the grid moves (no need to update in _move()).
+        self._last_right_col: int = 0
+        self._last_left_col: int = 0
 
         self._sprite_list = arcade.SpriteList(use_spatial_hash=True)
         self._bullet_list = arcade.SpriteList(use_spatial_hash=False)
@@ -112,6 +120,10 @@ class EnemyGrid:
         self._total_enemies = self._cols * self._rows
         self._enemies_destroyed = 0
         self.recalculate_speed()  # sets initial speed for this level
+
+        # Pre-seed column extent so virtual fallback works immediately.
+        self._last_right_col = self._cols - 1
+        self._last_left_col  = 0
 
         for row in range(self._rows):
             color, ship_type = ROW_MAPPING[row % 5]
@@ -235,6 +247,7 @@ class EnemyGrid:
         enemy.remove_from_sprite_lists()
         self._enemies_destroyed += 1
         self.recalculate_speed()
+        self._update_col_cache()
         return cx, cy, points
 
     # ------------------------------------------------------------------
@@ -268,6 +281,44 @@ class EnemyGrid:
         return self._bullet_list
 
     # ------------------------------------------------------------------
+    # Dive hooks
+    # ------------------------------------------------------------------
+
+    def remove_for_dive(self, ship: "EnemySprite") -> None:
+        """Extract *ship* from the formation (slot becomes visually empty).
+
+        The ship is not counted as destroyed — speed is not recalculated here.
+        The grid boundary check naturally skips the now-absent sprite.
+        """
+        ship.remove_from_sprite_lists()
+
+    def get_slot_position(self, col: int, row: int) -> tuple[float, float]:
+        """Return the current world position of grid slot (col, row)."""
+        return (
+            self._origin_x + self._col_offsets[col],
+            self._origin_y + self._row_offsets[row],
+        )
+
+    def return_from_dive(self, ship: "EnemySprite") -> None:
+        """Re-insert an EnemySprite back into the formation after a completed dive.
+
+        Snaps to the current grid position (which may have drifted since launch).
+        """
+        self._sprite_list.append(ship)
+        ship.center_x = self._origin_x + self._col_offsets[ship.col]
+        ship.center_y = self._origin_y + self._row_offsets[ship.row]
+        ship.home_x = ship.center_x
+        ship.home_y = ship.center_y
+        self._oob_check(ship, "return_from_dive")
+        if self._debug:
+            print(
+                f"[GRID] return_from_dive col={ship.col} row={ship.row} "
+                f"placed at ({ship.center_x:.0f}, {ship.center_y:.0f}) "
+                f"origin_x={self._origin_x:.0f} "
+                f"cached cols L={self._last_left_col} R={self._last_right_col}"
+            )
+
+    # ------------------------------------------------------------------
     # Speed / boundary
     # ------------------------------------------------------------------
 
@@ -284,23 +335,50 @@ class EnemyGrid:
         self._speed = level_floor + (pct ** 0.5) * cfg.enemy_speed_max_bonus
 
     def check_boundary(self) -> None:
-        """Bounce off margins using the outermost *surviving* enemy."""
-        sprites = list(self._sprite_list)  # type: ignore[attr-defined]
-        if not sprites:
-            return
+        """Bounce off margins using grid-position geometry (not sprite pixel edges).
+
+        Edges are computed from _origin_x + _col_offsets[outermost_col] so that
+        different sprite sizes don't affect when bouncing occurs.  When all ships
+        are temporarily airborne the last-known outermost column indices are reused
+        — they stay valid as the grid moves because they're index-based.
+        """
         margin = self._config.enemy_side_margin
-        drop = self._config.enemy_drop_distance
+        drop   = self._config.enemy_drop_distance
+
+        sprites = list(self._sprite_list)  # type: ignore[attr-defined]
+        if sprites:
+            right_col = max(s.col for s in sprites)
+            left_col  = min(s.col for s in sprites)
+            self._last_right_col = right_col
+            self._last_left_col  = left_col
+        elif self._col_offsets:
+            # All ships temporarily airborne — use cached column indices.
+            right_col = self._last_right_col
+            left_col  = self._last_left_col
+        else:
+            return
+
+        right_edge = self._origin_x + self._col_offsets[right_col]
+        left_edge  = self._origin_x + self._col_offsets[left_col]
 
         if self._direction > 0:
-            rightmost = max(s.right for s in sprites)
-            if rightmost >= self._window_width - margin:
+            if right_edge >= self._window_width - margin:
                 self._direction = -1.0
                 self._drop(drop)
+                if self._debug:
+                    print(
+                        f"[GRID] BOUNCE >< at right_col={right_col} "
+                        f"right_edge={right_edge:.0f} origin_x={self._origin_x:.0f}"
+                    )
         else:
-            leftmost = min(s.left for s in sprites)
-            if leftmost <= margin:
+            if left_edge <= margin:
                 self._direction = 1.0
                 self._drop(drop)
+                if self._debug:
+                    print(
+                        f"[GRID] BOUNCE <> at left_col={left_col} "
+                        f"left_edge={left_edge:.0f} origin_x={self._origin_x:.0f}"
+                    )
 
     # ------------------------------------------------------------------
     # Snapshot
@@ -353,13 +431,14 @@ class EnemyGrid:
         window_height: int,
         enemy_texture: Optional[arcade.Texture] = None,
         bullet_texture: Optional[arcade.Texture] = None,
+        debug: bool = False,
     ) -> "EnemyGrid":
         """Restore an EnemyGrid from a saved snapshot.
 
         Spawn safety must already have been applied to the snapshot before
         calling this (done by apply_spawn_safety() in START_LEVEL).
         """
-        grid = cls(config, window_width, window_height, enemy_texture, bullet_texture)
+        grid = cls(config, window_width, window_height, enemy_texture, bullet_texture, debug=debug)
         grid._level = int(snapshot.get("level", 1))
         level = grid._level
         grid._cols = min(
@@ -406,6 +485,15 @@ class EnemyGrid:
             sprite.home_y = float(home[1])
             grid._sprite_list.append(sprite)
 
+        # Seed cached column extents from restored sprites (or full formation).
+        sprites = list(grid._sprite_list)
+        if sprites:
+            grid._last_right_col = max(s.col for s in sprites)
+            grid._last_left_col  = min(s.col for s in sprites)
+        elif grid._col_offsets:
+            grid._last_right_col = len(grid._col_offsets) - 1
+            grid._last_left_col  = 0
+
         # Projectiles are stripped by SAVE_SNAPSHOT_AND_SWITCH before storage,
         # but restore them if present (e.g. from a test snapshot).
         grid._bullet_list = arcade.SpriteList(use_spatial_hash=False)
@@ -424,13 +512,33 @@ class EnemyGrid:
     # Private helpers
     # ------------------------------------------------------------------
 
+    def _update_col_cache(self) -> None:
+        """Recompute cached outermost column indices from current sprite list."""
+        sprites = list(self._sprite_list)
+        if sprites:
+            self._last_right_col = max(s.col for s in sprites)
+            self._last_left_col  = min(s.col for s in sprites)
+
+    def _oob_check(self, sprite: "EnemySprite", context: str) -> None:
+        """Log if sprite has moved outside the window bounds (debug mode only)."""
+        if not self._debug:
+            return
+        if sprite.center_x < 0 or sprite.center_x > self._window_width:
+            print(
+                f"[OOB] grid {context} col={sprite.col} row={sprite.row} "
+                f"x={sprite.center_x:.1f} window_w={self._window_width}"
+            )
+            pass  # set breakpoint here
+
     def _move(self, delta_time: float) -> None:
         dx = self._direction * self._speed * delta_time
         self._origin_x += dx
         for sprite in self._sprite_list:  # type: ignore[attr-defined]
             sprite.center_x += dx
+            self._oob_check(sprite, "_move")
 
     def _drop(self, distance: float) -> None:
         self._origin_y -= distance
         for sprite in self._sprite_list:  # type: ignore[attr-defined]
             sprite.center_y -= distance
+            self._oob_check(sprite, "_drop")
