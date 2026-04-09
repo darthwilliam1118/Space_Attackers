@@ -285,10 +285,14 @@ class RunLevelView(arcade.View):
         if len(self._grid.get_bullet_sprite_list()) > bullets_before and self._snd_enemy_shoot is not None:
             arcade.play_sound(self._snd_enemy_shoot)
 
+        _cfg = self._manager.context.get("config")
+        god_mode: bool = _cfg.god_mode if _cfg is not None else False
+
         for event in events:
             if event == GameEvent.PLAYER_KILLED:
-                self._trigger_death()
-                return
+                if not god_mode:
+                    self._trigger_death()
+                    return
             elif event == GameEvent.LEVEL_COMPLETE:
                 self._manager.transition(GameState.LEVEL_COMPLETE)
                 return
@@ -316,8 +320,9 @@ class RunLevelView(arcade.View):
                     arcade.play_sound(self._snd_enemy_killed)
             for event in dive_events:
                 if event == GameEvent.PLAYER_KILLED:
-                    self._trigger_death()
-                    return
+                    if not god_mode:
+                        self._trigger_death()
+                        return
                 elif event == GameEvent.ENEMY_DESTROYED:
                     if _is_level_cleared():
                         self._level_cleared = True
