@@ -3,7 +3,7 @@ starting_level = 5
 num_lives = 10
 spawn_safe_radius = 80
 debug = false
-god_mode = true
+god_mode = false
 # max_window_height: window height in pixels; width = height * 0.75. Lower to test smaller screens.
 max_window_height = 1000
 

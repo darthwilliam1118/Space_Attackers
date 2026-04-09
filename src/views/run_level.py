@@ -52,6 +52,8 @@ class RunLevelView(arcade.View):
         self._particle_emitter: Optional[ParticleEmitter] = None
         self._grid: Optional[EnemyGrid] = None
 
+        self._paused: bool = False
+
         self._dying: bool = False
         self._death_explosion: Optional[ExplosionSprite] = None
         self._death_timer: float = 0.0
@@ -131,6 +133,9 @@ class RunLevelView(arcade.View):
         from src.state import GameState
 
         delta_time = min(delta_time, 1.0 / 15.0)  # cap to ~66ms to survive debugger pauses
+
+        if self._paused:
+            return
 
         # Guard: respawned into an empty level (last enemy died during death sequence)
         if not self._dying and not self._waiting_for_dives and not self._level_cleared:
@@ -365,6 +370,17 @@ class RunLevelView(arcade.View):
         if self._debug and self._debug_text is not None:
             self._debug_text.draw()
 
+        if self._paused:
+            w, h = self.window.width, self.window.height
+            arcade.draw_lrbt_rectangle_filled(0, w, 0, h, (0, 0, 0, 120))
+            arcade.draw_text(
+                "PAUSED",
+                w / 2, h / 2,
+                arcade.color.WHITE, font_size=48,
+                font_name=FONT_THIN,
+                anchor_x="center", anchor_y="center",
+            )
+
     def on_key_press(self, key: int, modifiers: int) -> None:
         from src.state import GameState
 
@@ -381,6 +397,10 @@ class RunLevelView(arcade.View):
             and self._ship is not None
         ):
             self._dive_controller.launch_group(self._grid, self._ship.center_x)
+            return
+
+        if key == arcade.key.P:
+            self._paused = not self._paused
             return
 
         self._keys_held.add(key)

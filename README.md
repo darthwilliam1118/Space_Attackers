@@ -15,6 +15,7 @@ A Space Invaders-style arcade game built in Python using the [Arcade](https://ap
 | Move up | Arrow Up / W |
 | Move down | Arrow Down / S |
 | Fire | Space |
+| Pause / Resume | P |
 
 ### Objective
 

@@ -142,6 +142,7 @@ _FALLBACK_LINES = [
     "\tMove up\tArrow Up / W",
     "\tMove down\tArrow Down / S",
     "\tFire\tSpace",
+    "\tPause / Resume\tP",
     "",
     "OBJECTIVE",
     "  Destroy all enemies before they hit your ship.",
