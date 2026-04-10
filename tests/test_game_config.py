@@ -3,8 +3,6 @@
 import tomllib
 from pathlib import Path
 
-import pytest
-
 from src.game_config import GameConfig
 
 

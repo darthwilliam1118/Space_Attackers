@@ -12,6 +12,19 @@
 - Ask any questions needed to resolve ambiguities or conflicts in the plan.
 - Don't use unicode characters in debug output just regular ascii
 
+## Code Quality Standards
+
+- Formatter: Black (line length 100). Run `black .` before committing.
+- Linter: Ruff. Run `ruff check .` and fix all errors before committing.
+- Type hints: Use them on all function signatures.
+- No unused imports, no bare `except:` clauses.
+- Follow existing patterns in the codebase — don't introduce new ones without discussion.
+
+## Before Submitting Any Code
+1. `ruff check .` — must be clean
+2. `black .` — must be clean  
+3. Code must not break existing game state machine patterns
+
 ## Project Structure
 - Source code in src
 - Tests in tests/
@@ -67,6 +80,7 @@ Always use the 3.x API. Key breaking changes to be aware of:
 - Access a list: scene["name"]
 
 ### Sprites
+- When constructing all sprites, use global config setting SPRITE_SCALE
 - Sprite constructor: arcade.Sprite(path, scale=1.0) — path is now
   keyword preferred
 - arcade.Sprite.textures is a list — assign self.texture to set current

@@ -7,8 +7,8 @@ import pytest
 
 from src.enemy_config import EnemyConfig
 from src.enemy_grid import EnemyGrid
-from src.sprites.enemy_sprite import ROW_MAPPING, EnemySprite, sprite_path_for
 from src.sprites.enemy_bullet import EnemyBullet
+from src.sprites.enemy_sprite import ROW_MAPPING, sprite_path_for
 
 W, H = 800, 600
 
@@ -50,6 +50,7 @@ def _grid(**kwargs: object) -> EnemyGrid:
 # EnemySprite
 # ---------------------------------------------------------------------------
 
+
 class TestEnemySpriteMapping:
     def test_row_mapping_has_five_entries(self) -> None:
         assert len(ROW_MAPPING) == 5
@@ -72,6 +73,7 @@ class TestEnemySpriteMapping:
 # EnemyBullet
 # ---------------------------------------------------------------------------
 
+
 class TestEnemyBullet:
     def test_moves_downward(self) -> None:
         b = EnemyBullet(100, 300, speed=250, texture=_bullet_tex())
@@ -89,6 +91,7 @@ class TestEnemyBullet:
 # ---------------------------------------------------------------------------
 # Grid spawn
 # ---------------------------------------------------------------------------
+
 
 class TestGridSpawn:
     def test_correct_sprite_count(self) -> None:
@@ -146,6 +149,7 @@ class TestGridSpawn:
 # Grid movement
 # ---------------------------------------------------------------------------
 
+
 class TestGridMovement:
     def test_moves_right_by_default(self) -> None:
         g = _grid(enemy_speed_initial=100)
@@ -171,10 +175,10 @@ class TestGridMovement:
 # Boundary check and reversal
 # ---------------------------------------------------------------------------
 
+
 class TestBoundary:
     def test_reversal_triggered_at_right_margin(self) -> None:
-        g = _grid(enemy_cols=1, enemy_rows=1, enemy_side_margin=40,
-                  enemy_speed_initial=100)
+        g = _grid(enemy_cols=1, enemy_rows=1, enemy_side_margin=40, enemy_speed_initial=100)
         # For a 1-col grid _col_offsets=[0], so right_edge == _origin_x.
         # Place origin just past the right margin.
         g._origin_x = W - 40 + 1
@@ -183,8 +187,7 @@ class TestBoundary:
         assert g._direction == -1.0
 
     def test_reversal_triggered_at_left_margin(self) -> None:
-        g = _grid(enemy_cols=1, enemy_rows=1, enemy_side_margin=40,
-                  enemy_speed_initial=100)
+        g = _grid(enemy_cols=1, enemy_rows=1, enemy_side_margin=40, enemy_speed_initial=100)
         g._direction = -1.0
         # left_edge == _origin_x for a 1-col grid; place just past left margin.
         g._origin_x = 40 - 1
@@ -193,8 +196,7 @@ class TestBoundary:
 
     def test_drop_distance_on_reversal(self) -> None:
         drop = 48.0
-        g = _grid(enemy_cols=1, enemy_rows=1, enemy_side_margin=40,
-                  enemy_drop_distance=drop)
+        g = _grid(enemy_cols=1, enemy_rows=1, enemy_side_margin=40, enemy_drop_distance=drop)
         initial_y = list(g.get_sprite_list())[0].center_y
         # Force right boundary via _origin_x (col_offsets=[0] for 1-col grid).
         g._origin_x = W - 40 + 1
@@ -204,8 +206,7 @@ class TestBoundary:
 
     def test_boundary_uses_surviving_enemies_not_original_edge(self) -> None:
         """Destroying the rightmost column shrinks the effective boundary col."""
-        g = _grid(enemy_cols=3, enemy_rows=1, enemy_side_margin=40,
-                  enemy_speed_initial=0)
+        g = _grid(enemy_cols=3, enemy_rows=1, enemy_side_margin=40, enemy_speed_initial=0)
         sprites = sorted(g.get_sprite_list(), key=lambda s: s.center_x)
         # Remove the rightmost enemy (col 2)
         sprites[-1].remove_from_sprite_lists()
@@ -234,31 +235,30 @@ class TestBoundary:
 # Speed scaling
 # ---------------------------------------------------------------------------
 
+
 class TestSpeedScaling:
     def test_speed_at_zero_destruction(self) -> None:
-        g = _grid(enemy_speed_initial=80, enemy_speed_max_bonus=120,
-                  enemy_cols=4, enemy_rows=1)
+        g = _grid(enemy_speed_initial=80, enemy_speed_max_bonus=120, enemy_cols=4, enemy_rows=1)
         assert g._speed == pytest.approx(80.0)
 
     def test_speed_at_full_destruction(self) -> None:
-        g = _grid(enemy_speed_initial=80, enemy_speed_max_bonus=120,
-                  enemy_cols=4, enemy_rows=1)
+        g = _grid(enemy_speed_initial=80, enemy_speed_max_bonus=120, enemy_cols=4, enemy_rows=1)
         g._enemies_destroyed = g._total_enemies
         g.recalculate_speed()
         assert g._speed == pytest.approx(200.0)
 
     def test_speed_at_50pct_destruction(self) -> None:
         # sqrt(0.5) curve: 80 + sqrt(0.5) * 120 ≈ 164.85
-        g = _grid(enemy_speed_initial=80, enemy_speed_max_bonus=120,
-                  enemy_cols=4, enemy_rows=1)
+        g = _grid(enemy_speed_initial=80, enemy_speed_max_bonus=120, enemy_cols=4, enemy_rows=1)
         g._enemies_destroyed = g._total_enemies // 2
         g.recalculate_speed()
-        assert g._speed == pytest.approx(80.0 + (0.5 ** 0.5) * 120.0)
+        assert g._speed == pytest.approx(80.0 + (0.5**0.5) * 120.0)
 
 
 # ---------------------------------------------------------------------------
 # Bottom enemies
 # ---------------------------------------------------------------------------
+
 
 class TestBottomEnemies:
     def test_returns_one_per_column(self) -> None:
@@ -286,6 +286,7 @@ class TestBottomEnemies:
 # ---------------------------------------------------------------------------
 # apply_player_bullet
 # ---------------------------------------------------------------------------
+
 
 class TestApplyPlayerBullet:
     def test_returns_none_on_miss(self) -> None:
@@ -323,6 +324,7 @@ class TestApplyPlayerBullet:
 # is_cleared
 # ---------------------------------------------------------------------------
 
+
 class TestIsCleared:
     def test_not_cleared_with_enemies(self) -> None:
         g = _grid(enemy_cols=2, enemy_rows=1)
@@ -337,6 +339,7 @@ class TestIsCleared:
 # ---------------------------------------------------------------------------
 # Snapshot round-trip
 # ---------------------------------------------------------------------------
+
 
 class TestSnapshot:
     def test_snapshot_contains_required_keys(self) -> None:
@@ -361,9 +364,9 @@ class TestSnapshot:
         g = _grid(enemy_cols=3, enemy_rows=2)
         snap = g.to_snapshot()
         cfg = _cfg(enemy_cols=3, enemy_rows=2)
-        g2 = EnemyGrid.from_snapshot(snap, cfg, W, H,
-                                     enemy_texture=_enemy_tex(),
-                                     bullet_texture=_bullet_tex())
+        g2 = EnemyGrid.from_snapshot(
+            snap, cfg, W, H, enemy_texture=_enemy_tex(), bullet_texture=_bullet_tex()
+        )
         assert len(g2.get_sprite_list()) == 6
 
     def test_from_snapshot_restores_direction(self) -> None:
@@ -371,16 +374,16 @@ class TestSnapshot:
         g._direction = -1.0
         snap = g.to_snapshot()
         cfg = _cfg(enemy_cols=2, enemy_rows=1)
-        g2 = EnemyGrid.from_snapshot(snap, cfg, W, H,
-                                     enemy_texture=_enemy_tex(),
-                                     bullet_texture=_bullet_tex())
+        g2 = EnemyGrid.from_snapshot(
+            snap, cfg, W, H, enemy_texture=_enemy_tex(), bullet_texture=_bullet_tex()
+        )
         assert g2._direction == pytest.approx(-1.0)
 
     def test_from_snapshot_restores_speed(self) -> None:
         g = _grid(enemy_cols=2, enemy_rows=1, enemy_speed_initial=150)
         snap = g.to_snapshot()
         cfg = _cfg(enemy_cols=2, enemy_rows=1)
-        g2 = EnemyGrid.from_snapshot(snap, cfg, W, H,
-                                     enemy_texture=_enemy_tex(),
-                                     bullet_texture=_bullet_tex())
+        g2 = EnemyGrid.from_snapshot(
+            snap, cfg, W, H, enemy_texture=_enemy_tex(), bullet_texture=_bullet_tex()
+        )
         assert g2._speed == pytest.approx(150.0)

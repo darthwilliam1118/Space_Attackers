@@ -32,11 +32,12 @@ class GameConfig:
     starting_level: int = 1
     num_lives: int = 3
     spawn_safe_radius: int = 80
-    music_volume: int = 80   # 0-100
+    music_volume: int = 80  # 0-100
     effects_volume: int = 80  # 0-100
     debug: bool = False
     god_mode: bool = False
     max_window_height: int = 1024  # height in px; width = height * 0.75 (4:3)
+    sprite_scale: float = 1.0
     ship: ShipConfig = None  # type: ignore[assignment]
     enemies: EnemyConfig = None  # type: ignore[assignment]
     background: BackgroundConfig = None  # type: ignore[assignment]
@@ -98,21 +99,49 @@ class GameConfig:
             enemy_rows_start=int(ec_raw.get("enemy_rows_start", EnemyConfig.enemy_rows_start)),
             enemy_cols_max=int(ec_raw.get("enemy_cols_max", EnemyConfig.enemy_cols_max)),
             enemy_rows_max=int(ec_raw.get("enemy_rows_max", EnemyConfig.enemy_rows_max)),
-            enemy_cols_per_level=int(ec_raw.get("enemy_cols_per_level", EnemyConfig.enemy_cols_per_level)),
-            enemy_rows_per_level=int(ec_raw.get("enemy_rows_per_level", EnemyConfig.enemy_rows_per_level)),
-            enemy_col_width_factor=float(ec_raw.get("enemy_col_width_factor", EnemyConfig.enemy_col_width_factor)),
-            enemy_speed_initial=float(ec_raw.get("enemy_speed_initial", EnemyConfig.enemy_speed_initial)),
-            enemy_speed_max_bonus=float(ec_raw.get("enemy_speed_max_bonus", EnemyConfig.enemy_speed_max_bonus)),
-            enemy_speed_level_pct=float(ec_raw.get("enemy_speed_level_pct", EnemyConfig.enemy_speed_level_pct)),
+            enemy_cols_per_level=int(
+                ec_raw.get("enemy_cols_per_level", EnemyConfig.enemy_cols_per_level)
+            ),
+            enemy_rows_per_level=int(
+                ec_raw.get("enemy_rows_per_level", EnemyConfig.enemy_rows_per_level)
+            ),
+            enemy_col_width_factor=float(
+                ec_raw.get("enemy_col_width_factor", EnemyConfig.enemy_col_width_factor)
+            ),
+            enemy_speed_initial=float(
+                ec_raw.get("enemy_speed_initial", EnemyConfig.enemy_speed_initial)
+            ),
+            enemy_speed_max_bonus=float(
+                ec_raw.get("enemy_speed_max_bonus", EnemyConfig.enemy_speed_max_bonus)
+            ),
+            enemy_speed_level_pct=float(
+                ec_raw.get("enemy_speed_level_pct", EnemyConfig.enemy_speed_level_pct)
+            ),
             enemy_side_margin=float(ec_raw.get("enemy_side_margin", EnemyConfig.enemy_side_margin)),
-            enemy_drop_distance=float(ec_raw.get("enemy_drop_distance", EnemyConfig.enemy_drop_distance)),
-            enemy_bottom_margin=float(ec_raw.get("enemy_bottom_margin", EnemyConfig.enemy_bottom_margin)),
-            enemy_fire_interval_min_l1=float(ec_raw.get("enemy_fire_interval_min_l1", EnemyConfig.enemy_fire_interval_min_l1)),
-            enemy_fire_interval_max_l1=float(ec_raw.get("enemy_fire_interval_max_l1", EnemyConfig.enemy_fire_interval_max_l1)),
-            enemy_fire_interval_scale=float(ec_raw.get("enemy_fire_interval_scale", EnemyConfig.enemy_fire_interval_scale)),
-            enemy_fire_interval_min_cap=float(ec_raw.get("enemy_fire_interval_min_cap", EnemyConfig.enemy_fire_interval_min_cap)),
-            enemy_fire_interval_max_cap=float(ec_raw.get("enemy_fire_interval_max_cap", EnemyConfig.enemy_fire_interval_max_cap)),
-            enemy_bullet_speed=float(ec_raw.get("enemy_bullet_speed", EnemyConfig.enemy_bullet_speed)),
+            enemy_drop_distance=float(
+                ec_raw.get("enemy_drop_distance", EnemyConfig.enemy_drop_distance)
+            ),
+            enemy_bottom_margin=float(
+                ec_raw.get("enemy_bottom_margin", EnemyConfig.enemy_bottom_margin)
+            ),
+            enemy_fire_interval_min_l1=float(
+                ec_raw.get("enemy_fire_interval_min_l1", EnemyConfig.enemy_fire_interval_min_l1)
+            ),
+            enemy_fire_interval_max_l1=float(
+                ec_raw.get("enemy_fire_interval_max_l1", EnemyConfig.enemy_fire_interval_max_l1)
+            ),
+            enemy_fire_interval_scale=float(
+                ec_raw.get("enemy_fire_interval_scale", EnemyConfig.enemy_fire_interval_scale)
+            ),
+            enemy_fire_interval_min_cap=float(
+                ec_raw.get("enemy_fire_interval_min_cap", EnemyConfig.enemy_fire_interval_min_cap)
+            ),
+            enemy_fire_interval_max_cap=float(
+                ec_raw.get("enemy_fire_interval_max_cap", EnemyConfig.enemy_fire_interval_max_cap)
+            ),
+            enemy_bullet_speed=float(
+                ec_raw.get("enemy_bullet_speed", EnemyConfig.enemy_bullet_speed)
+            ),
         )
         bg_raw = data.get("background", {})
         bc = BackgroundConfig(
@@ -124,13 +153,27 @@ class GameConfig:
         pc_raw = data.get("particles", {})
         pc = ParticlesConfig(
             particle_count=int(pc_raw.get("particle_count", ParticlesConfig.particle_count)),
-            particle_speed_min=float(pc_raw.get("particle_speed_min", ParticlesConfig.particle_speed_min)),
-            particle_speed_max=float(pc_raw.get("particle_speed_max", ParticlesConfig.particle_speed_max)),
-            particle_lifetime_min=float(pc_raw.get("particle_lifetime_min", ParticlesConfig.particle_lifetime_min)),
-            particle_lifetime_max=float(pc_raw.get("particle_lifetime_max", ParticlesConfig.particle_lifetime_max)),
-            particle_gravity=float(pc_raw.get("particle_gravity", ParticlesConfig.particle_gravity)),
-            shockwave_duration=float(pc_raw.get("shockwave_duration", ParticlesConfig.shockwave_duration)),
-            shockwave_max_scale=float(pc_raw.get("shockwave_max_scale", ParticlesConfig.shockwave_max_scale)),
+            particle_speed_min=float(
+                pc_raw.get("particle_speed_min", ParticlesConfig.particle_speed_min)
+            ),
+            particle_speed_max=float(
+                pc_raw.get("particle_speed_max", ParticlesConfig.particle_speed_max)
+            ),
+            particle_lifetime_min=float(
+                pc_raw.get("particle_lifetime_min", ParticlesConfig.particle_lifetime_min)
+            ),
+            particle_lifetime_max=float(
+                pc_raw.get("particle_lifetime_max", ParticlesConfig.particle_lifetime_max)
+            ),
+            particle_gravity=float(
+                pc_raw.get("particle_gravity", ParticlesConfig.particle_gravity)
+            ),
+            shockwave_duration=float(
+                pc_raw.get("shockwave_duration", ParticlesConfig.shockwave_duration)
+            ),
+            shockwave_max_scale=float(
+                pc_raw.get("shockwave_max_scale", ParticlesConfig.shockwave_max_scale)
+            ),
         )
         ui_raw = data.get("ui", {})
         uc = UIConfig(
@@ -139,16 +182,26 @@ class GameConfig:
         )
         dc_raw = data.get("diving", {})
         dc = DivingConfig(
-            dive_group_size_max=int(dc_raw.get("dive_group_size_max", DivingConfig.dive_group_size_max)),
-            dive_interval_base=float(dc_raw.get("dive_interval_base", DivingConfig.dive_interval_base)),
-            dive_interval_step=float(dc_raw.get("dive_interval_step", DivingConfig.dive_interval_step)),
-            dive_interval_min=float(dc_raw.get("dive_interval_min", DivingConfig.dive_interval_min)),
+            dive_group_size_max=int(
+                dc_raw.get("dive_group_size_max", DivingConfig.dive_group_size_max)
+            ),
+            dive_interval_base=float(
+                dc_raw.get("dive_interval_base", DivingConfig.dive_interval_base)
+            ),
+            dive_interval_step=float(
+                dc_raw.get("dive_interval_step", DivingConfig.dive_interval_step)
+            ),
+            dive_interval_min=float(
+                dc_raw.get("dive_interval_min", DivingConfig.dive_interval_min)
+            ),
             dive_speed_base=float(dc_raw.get("dive_speed_base", DivingConfig.dive_speed_base)),
             dive_speed_step=float(dc_raw.get("dive_speed_step", DivingConfig.dive_speed_step)),
             dive_speed_max=float(dc_raw.get("dive_speed_max", DivingConfig.dive_speed_max)),
             dive_bomb_speed=float(dc_raw.get("dive_bomb_speed", DivingConfig.dive_bomb_speed)),
             dive_bonus_points=int(dc_raw.get("dive_bonus_points", DivingConfig.dive_bonus_points)),
-            dive_return_speed=float(dc_raw.get("dive_return_speed", DivingConfig.dive_return_speed)),
+            dive_return_speed=float(
+                dc_raw.get("dive_return_speed", DivingConfig.dive_return_speed)
+            ),
         )
         return cls(
             starting_level=int(game.get("starting_level", cls.starting_level)),
@@ -159,6 +212,7 @@ class GameConfig:
             debug=bool(game.get("debug", cls.debug)),
             god_mode=bool(game.get("god_mode", cls.god_mode)),
             max_window_height=int(game.get("max_window_height", 0)),
+            sprite_scale=float(game.get("sprite_scale", cls.sprite_scale)),
             ship=sc,
             enemies=ec,
             background=bc,
@@ -182,6 +236,7 @@ class GameConfig:
             f"debug = {'true' if self.debug else 'false'}\n",
             f"god_mode = {'true' if self.god_mode else 'false'}\n",
             f"max_window_height = {self.max_window_height}\n",
+            f"sprite_scale = {self.sprite_scale}\n",
             "\n[ship]\n",
             f"ship_speed = {sc.ship_speed}\n",
             f"ship_accel = {sc.ship_accel}\n",

@@ -10,9 +10,12 @@ W, H = 800, 600
 _SENTINEL = object()  # passed as _sprites to skip OpenGL init
 
 
-def _make(star_count: int = 20, speed_min: float = 20.0, speed_max: float = 120.0) -> ProceduralStarField:
-    return ProceduralStarField(W, H, star_count=star_count, speed_min=speed_min,
-                               speed_max=speed_max, _sprites=_SENTINEL)
+def _make(
+    star_count: int = 20, speed_min: float = 20.0, speed_max: float = 120.0
+) -> ProceduralStarField:
+    return ProceduralStarField(
+        W, H, star_count=star_count, speed_min=speed_min, speed_max=speed_max, _sprites=_SENTINEL
+    )
 
 
 class TestInit:
@@ -90,7 +93,7 @@ class TestUpdate:
         sf._y[0] = 1.0
         sf._speed_list[0] = 500.0  # will wrap
         sf._y[1] = 400.0
-        sf._speed_list[1] = 10.0   # will not wrap
+        sf._speed_list[1] = 10.0  # will not wrap
 
         sf.update(0.1)
 

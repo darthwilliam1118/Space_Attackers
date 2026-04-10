@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+
 from src.ui.score_popup import ScorePopup
 
 
@@ -20,8 +21,13 @@ class _StubText:
         self.draw_calls += 1
 
 
-def _popup(x: float = 100.0, y: float = 200.0, value: int = 10,
-           duration: float = 0.8, rise_speed: float = 60.0) -> tuple[ScorePopup, _StubText]:
+def _popup(
+    x: float = 100.0,
+    y: float = 200.0,
+    value: int = 10,
+    duration: float = 0.8,
+    rise_speed: float = 60.0,
+) -> tuple[ScorePopup, _StubText]:
     stub = _StubText(f"+{value}")
     popup = ScorePopup(x, y, value, duration=duration, rise_speed=rise_speed, _text_obj=stub)
     return popup, stub
@@ -30,6 +36,7 @@ def _popup(x: float = 100.0, y: float = 200.0, value: int = 10,
 # ---------------------------------------------------------------------------
 # Movement
 # ---------------------------------------------------------------------------
+
 
 def test_update_moves_text_upward() -> None:
     popup, stub = _popup(rise_speed=60.0)
@@ -49,6 +56,7 @@ def test_update_rise_is_delta_time_scaled() -> None:
 # Alpha fade
 # ---------------------------------------------------------------------------
 
+
 def test_alpha_starts_at_255() -> None:
     _, stub = _popup()
     assert stub.color[3] == 255
@@ -56,7 +64,7 @@ def test_alpha_starts_at_255() -> None:
 
 def test_alpha_fades_linearly() -> None:
     popup, stub = _popup(duration=1.0)
-    popup.update(0.5)   # t = 0.5 → alpha = 128
+    popup.update(0.5)  # t = 0.5 → alpha = 128
     assert stub.color[3] == int(255 * 0.5)
 
 
@@ -69,6 +77,7 @@ def test_alpha_at_three_quarters() -> None:
 # ---------------------------------------------------------------------------
 # is_done lifecycle
 # ---------------------------------------------------------------------------
+
 
 def test_is_done_false_before_duration() -> None:
     popup, _ = _popup(duration=0.8)
@@ -90,15 +99,16 @@ def test_is_done_true_past_duration() -> None:
 
 def test_update_is_noop_after_done() -> None:
     popup, stub = _popup(duration=0.8, rise_speed=60.0)
-    popup.update(0.8)   # marks done
+    popup.update(0.8)  # marks done
     y_before = stub.y
-    popup.update(0.5)   # should not move
+    popup.update(0.5)  # should not move
     assert stub.y == y_before
 
 
 # ---------------------------------------------------------------------------
 # draw()
 # ---------------------------------------------------------------------------
+
 
 def test_draw_calls_label_draw_when_active() -> None:
     popup, stub = _popup()
@@ -117,6 +127,7 @@ def test_draw_does_not_call_label_draw_when_done() -> None:
 # Multiple independent instances
 # ---------------------------------------------------------------------------
 
+
 def test_two_popups_are_independent() -> None:
     popup_a, stub_a = _popup(x=50.0, y=100.0, rise_speed=60.0, duration=1.0)
     popup_b, stub_b = _popup(x=200.0, y=300.0, rise_speed=120.0, duration=2.0)
@@ -133,6 +144,7 @@ def test_two_popups_are_independent() -> None:
 # ---------------------------------------------------------------------------
 # Display format
 # ---------------------------------------------------------------------------
+
 
 def test_text_format_value_10() -> None:
     stub = _StubText()

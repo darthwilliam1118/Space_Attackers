@@ -39,6 +39,7 @@ class PlayerBullet(arcade.Sprite):
         angle_deg: float = 0.0,
         player_num: int = 1,
         texture: Optional[arcade.Texture] = None,
+        scale: float = 1.0,
     ) -> None:
         if texture is not None:
             super().__init__(texture)
@@ -48,6 +49,7 @@ class PlayerBullet(arcade.Sprite):
                 hit_box_algorithm=arcade.hitbox.algo_simple,
             )
             super().__init__(tex)
+        self.scale = scale
         self.center_x = x
         self.center_y = y
         self.angle = angle_deg

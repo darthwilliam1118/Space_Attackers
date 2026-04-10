@@ -10,7 +10,7 @@ import arcade
 from src.enemy_config import EnemyConfig
 from src.game_event import GameEvent
 from src.sprites.enemy_bullet import EnemyBullet
-from src.sprites.enemy_sprite import EnemySprite, ROW_MAPPING, sprite_path_for
+from src.sprites.enemy_sprite import ROW_MAPPING, EnemySprite
 
 
 class EnemyGrid:
@@ -29,6 +29,7 @@ class EnemyGrid:
         enemy_texture: Optional[arcade.Texture] = None,
         bullet_texture: Optional[arcade.Texture] = None,
         debug: bool = False,
+        sprite_scale: float = 1.0,
     ) -> None:
         self._config = config
         self._window_width = window_width
@@ -36,6 +37,7 @@ class EnemyGrid:
         self._enemy_texture = enemy_texture
         self._bullet_texture = bullet_texture
         self._debug = debug
+        self._sprite_scale = sprite_scale
 
         # Formation offsets: list of (col_offset, row_offset) per grid cell
         self._col_offsets: list[float] = []
@@ -45,9 +47,9 @@ class EnemyGrid:
         self._origin_x: float = 0.0
         self._origin_y: float = 0.0
 
-        self._direction: float = 1.0          # 1 = right, -1 = left
-        self._drop_direction: int = -1        # -1 = dropping, +1 = rising
-        self._spawn_y: float = 0.0            # ceiling: grid rises back to this Y
+        self._direction: float = 1.0  # 1 = right, -1 = left
+        self._drop_direction: int = -1  # -1 = dropping, +1 = rising
+        self._spawn_y: float = 0.0  # ceiling: grid rises back to this Y
         self._level: int = 1
         self._speed: float = config.enemy_speed_initial
         self._total_enemies: int = 0
@@ -67,9 +69,11 @@ class EnemyGrid:
         # so they stay valid as the grid moves (no need to update in _move()).
         self._last_right_col: int = 0
         self._last_left_col: int = 0
-        self._last_bottom_row: int = 0   # cached bottom row index for airborne fallback
+        self._last_bottom_row: int = 0  # cached bottom row index for airborne fallback
 
-        self._pending_hits: list[tuple[float, float, int]] = []  # (cx, cy, points) for body collisions
+        self._pending_hits: list[tuple[float, float, int]] = (
+            []
+        )  # (cx, cy, points) for body collisions
         self._sprite_list = arcade.SpriteList(use_spatial_hash=True)
         self._bullet_list = arcade.SpriteList(use_spatial_hash=False)
 
@@ -93,8 +97,12 @@ class EnemyGrid:
             cfg.enemy_rows_max,
         )
         scale = cfg.enemy_fire_interval_scale ** (level - 1)
-        self._fire_min = max(cfg.enemy_fire_interval_min_l1 * scale, cfg.enemy_fire_interval_min_cap)
-        self._fire_max = max(cfg.enemy_fire_interval_max_l1 * scale, cfg.enemy_fire_interval_max_cap)
+        self._fire_min = max(
+            cfg.enemy_fire_interval_min_l1 * scale, cfg.enemy_fire_interval_min_cap
+        )
+        self._fire_max = max(
+            cfg.enemy_fire_interval_max_l1 * scale, cfg.enemy_fire_interval_max_cap
+        )
 
         # Fixed column spacing: probe one sprite to get its rendered width,
         # then scale by the config factor (e.g. 1.1 = 10% wider than sprite).
@@ -104,6 +112,7 @@ class EnemyGrid:
             col=0,
             row=0,
             texture=self._enemy_texture,
+            scale=self._sprite_scale,
         )
         col_spacing = _probe.width * cfg.enemy_col_width_factor
 
@@ -132,7 +141,7 @@ class EnemyGrid:
 
         # Pre-seed column extent so virtual fallback works immediately.
         self._last_right_col = self._cols - 1
-        self._last_left_col  = 0
+        self._last_left_col = 0
 
         for row in range(self._rows):
             color, ship_type = ROW_MAPPING[row % 5]
@@ -143,6 +152,7 @@ class EnemyGrid:
                     col=col,
                     row=row,
                     texture=self._enemy_texture,
+                    scale=self._sprite_scale,
                 )
                 sprite.center_x = self._origin_x + self._col_offsets[col]
                 sprite.center_y = self._origin_y + self._row_offsets[row]
@@ -151,8 +161,7 @@ class EnemyGrid:
                 self._sprite_list.append(sprite)
 
         self._shoot_timers = {
-            col: random.uniform(self._fire_min, self._fire_max)
-            for col in range(self._cols)
+            col: random.uniform(self._fire_min, self._fire_max) for col in range(self._cols)
         }
         self._bullet_list = arcade.SpriteList(use_spatial_hash=False)
 
@@ -213,6 +222,7 @@ class EnemyGrid:
                     y=enemy.bottom,
                     speed=cfg.enemy_bullet_speed,
                     texture=self._bullet_texture,
+                    scale=self._sprite_scale,
                 )
                 self._bullet_list.append(bullet)
                 active_cols.add(col)
@@ -270,9 +280,7 @@ class EnemyGrid:
 
     def get_bottom_enemies(self) -> dict[int, Optional[EnemySprite]]:
         """Returns {col: lowest-surviving EnemySprite} for each column."""
-        bottom: dict[int, Optional[EnemySprite]] = {
-            c: None for c in range(self._cols)
-        }
+        bottom: dict[int, Optional[EnemySprite]] = {c: None for c in range(self._cols)}
         for sprite in self._sprite_list:  # type: ignore[attr-defined]
             col = sprite.col
             current = bottom.get(col)
@@ -350,9 +358,11 @@ class EnemyGrid:
         steady acceleration to the last enemy.
         """
         cfg = self._config
-        level_floor = cfg.enemy_speed_initial * ((1.0 + cfg.enemy_speed_level_pct) ** (self._level - 1))
+        level_floor = cfg.enemy_speed_initial * (
+            (1.0 + cfg.enemy_speed_level_pct) ** (self._level - 1)
+        )
         pct = self._enemies_destroyed / max(self._total_enemies, 1)
-        self._speed = level_floor + (pct ** 0.5) * cfg.enemy_speed_max_bonus
+        self._speed = level_floor + (pct**0.5) * cfg.enemy_speed_max_bonus
 
     def check_boundary(self) -> None:
         """Bounce off margins using grid-position geometry (not sprite pixel edges).
@@ -363,23 +373,23 @@ class EnemyGrid:
         — they stay valid as the grid moves because they're index-based.
         """
         margin = self._config.enemy_side_margin
-        drop   = self._config.enemy_drop_distance
+        drop = self._config.enemy_drop_distance
 
         sprites = list(self._sprite_list)  # type: ignore[attr-defined]
         if sprites:
             right_col = max(s.col for s in sprites)
-            left_col  = min(s.col for s in sprites)
+            left_col = min(s.col for s in sprites)
             self._last_right_col = right_col
-            self._last_left_col  = left_col
+            self._last_left_col = left_col
         elif self._col_offsets:
             # All ships temporarily airborne — use cached column indices.
             right_col = self._last_right_col
-            left_col  = self._last_left_col
+            left_col = self._last_left_col
         else:
             return
 
         right_edge = self._origin_x + self._col_offsets[right_col]
-        left_edge  = self._origin_x + self._col_offsets[left_col]
+        left_edge = self._origin_x + self._col_offsets[left_col]
 
         if self._direction > 0:
             if right_edge >= self._window_width - margin:
@@ -412,19 +422,21 @@ class EnemyGrid:
         for sprite in self._sprite_list:  # type: ignore[attr-defined]
             col_off = self._col_offsets[sprite.col] if sprite.col < len(self._col_offsets) else 0.0
             row_off = self._row_offsets[sprite.row] if sprite.row < len(self._row_offsets) else 0.0
-            enemies.append({
-                "pos": [sprite.center_x, sprite.center_y],
-                "home": [sprite.home_x, sprite.home_y],
-                "formation_pos": [
-                    self._origin_x + col_off,
-                    self._origin_y + row_off,
-                ],
-                "diving": False,
-                "col": sprite.col,
-                "row": sprite.row,
-                "color": sprite.color_name,
-                "ship_type": sprite.ship_type,
-            })
+            enemies.append(
+                {
+                    "pos": [sprite.center_x, sprite.center_y],
+                    "home": [sprite.home_x, sprite.home_y],
+                    "formation_pos": [
+                        self._origin_x + col_off,
+                        self._origin_y + row_off,
+                    ],
+                    "diving": False,
+                    "col": sprite.col,
+                    "row": sprite.row,
+                    "color": sprite.color_name,
+                    "ship_type": sprite.ship_type,
+                }
+            )
         projectiles = [
             {"x": b.center_x, "y": b.center_y}
             for b in self._bullet_list  # type: ignore[attr-defined]
@@ -457,13 +469,22 @@ class EnemyGrid:
         enemy_texture: Optional[arcade.Texture] = None,
         bullet_texture: Optional[arcade.Texture] = None,
         debug: bool = False,
+        sprite_scale: float = 1.0,
     ) -> "EnemyGrid":
         """Restore an EnemyGrid from a saved snapshot.
 
         Spawn safety must already have been applied to the snapshot before
         calling this (done by apply_spawn_safety() in START_LEVEL).
         """
-        grid = cls(config, window_width, window_height, enemy_texture, bullet_texture, debug=debug)
+        grid = cls(
+            config,
+            window_width,
+            window_height,
+            enemy_texture,
+            bullet_texture,
+            debug=debug,
+            sprite_scale=sprite_scale,
+        )
         grid._level = int(snapshot.get("level", 1))
         level = grid._level
         grid._cols = min(
@@ -475,8 +496,12 @@ class EnemyGrid:
             config.enemy_rows_max,
         )
         scale = config.enemy_fire_interval_scale ** (level - 1)
-        grid._fire_min = max(config.enemy_fire_interval_min_l1 * scale, config.enemy_fire_interval_min_cap)
-        grid._fire_max = max(config.enemy_fire_interval_max_l1 * scale, config.enemy_fire_interval_max_cap)
+        grid._fire_min = max(
+            config.enemy_fire_interval_min_l1 * scale, config.enemy_fire_interval_min_cap
+        )
+        grid._fire_max = max(
+            config.enemy_fire_interval_max_l1 * scale, config.enemy_fire_interval_max_cap
+        )
         grid._direction = float(snapshot.get("direction", 1.0))
         grid._speed = float(snapshot.get("speed", config.enemy_speed_initial))
         grid._origin_x = float(snapshot.get("origin_x", 0.0))
@@ -488,9 +513,7 @@ class EnemyGrid:
         grid._row_offsets = list(snapshot.get("row_offsets", []))
         grid._total_enemies = int(snapshot.get("total_enemies", 1))
         grid._enemies_destroyed = int(snapshot.get("enemies_destroyed", 0))
-        grid._shoot_timers = {
-            int(k): float(v) for k, v in snapshot.get("shoot_timers", {}).items()
-        }
+        grid._shoot_timers = {int(k): float(v) for k, v in snapshot.get("shoot_timers", {}).items()}
 
         grid._sprite_list = arcade.SpriteList(use_spatial_hash=True)
         for edata in snapshot.get("enemies", []):
@@ -504,6 +527,7 @@ class EnemyGrid:
                 col=col,
                 row=row,
                 texture=enemy_texture,
+                scale=grid._sprite_scale,
             )
             pos = edata["pos"]
             sprite.center_x = float(pos[0])
@@ -517,10 +541,10 @@ class EnemyGrid:
         sprites = list(grid._sprite_list)
         if sprites:
             grid._last_right_col = max(s.col for s in sprites)
-            grid._last_left_col  = min(s.col for s in sprites)
+            grid._last_left_col = min(s.col for s in sprites)
         elif grid._col_offsets:
             grid._last_right_col = len(grid._col_offsets) - 1
-            grid._last_left_col  = 0
+            grid._last_left_col = 0
 
         # Projectiles are stripped by SAVE_SNAPSHOT_AND_SWITCH before storage,
         # but restore them if present (e.g. from a test snapshot).
@@ -531,6 +555,7 @@ class EnemyGrid:
                 y=float(pdata["y"]),
                 speed=config.enemy_bullet_speed,
                 texture=bullet_texture,
+                scale=grid._sprite_scale,
             )
             grid._bullet_list.append(bullet)
 
@@ -571,7 +596,7 @@ class EnemyGrid:
         sprites = list(self._sprite_list)
         if sprites:
             self._last_right_col = max(s.col for s in sprites)
-            self._last_left_col  = min(s.col for s in sprites)
+            self._last_left_col = min(s.col for s in sprites)
 
     def _oob_check(self, sprite: "EnemySprite", context: str) -> None:
         """Log if sprite has moved outside the window bounds (debug mode only)."""
@@ -592,7 +617,7 @@ class EnemyGrid:
             self._oob_check(sprite, "_move")
 
     def _drop(self, distance: float) -> None:
-        delta = distance * self._drop_direction   # negative = down, positive = up
+        delta = distance * self._drop_direction  # negative = down, positive = up
         self._origin_y += delta
         for sprite in self._sprite_list:  # type: ignore[attr-defined]
             sprite.center_y += delta

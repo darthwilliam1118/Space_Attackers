@@ -28,8 +28,10 @@ class ExplosionSprite(arcade.Sprite):
         frames: Optional[list[arcade.Texture]] = None,
         vx: float = 0.0,
         vy: float = 0.0,
+        scale: float = 1.0,
     ) -> None:
         super().__init__()
+        self.scale = scale
         self.center_x = x
         self.center_y = y
         self._vx = vx
@@ -50,9 +52,7 @@ class ExplosionSprite(arcade.Sprite):
         # Ping-pong: small→large→small.  Total length = 2n-1.
         # e.g. [D,C,B,A] → [D,C,B,A,B,C,D]
         if len(base_frames) > 1:
-            self._frames: list[arcade.Texture] = (
-                base_frames + list(reversed(base_frames[:-1]))
-            )
+            self._frames: list[arcade.Texture] = base_frames + list(reversed(base_frames[:-1]))
         else:
             self._frames = base_frames
 

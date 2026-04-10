@@ -110,6 +110,7 @@ class GameStateManager:
 
             case GameState.EXIT:
                 import arcade
+
                 arcade.exit()
 
     # ------------------------------------------------------------------
@@ -145,6 +146,7 @@ class GameStateManager:
 
         from src.diving_config import DivingConfig
         from src.enemy_config import EnemyConfig
+
         enemy_cfg: EnemyConfig = cfg.enemies if cfg else EnemyConfig()
         diving_cfg: DivingConfig = cfg.diving if cfg else DivingConfig()
         debug: bool = cfg.debug if cfg else False
@@ -160,13 +162,23 @@ class GameStateManager:
                 radius = cfg.spawn_safe_radius if cfg else 80
                 # Ship spawns at horizontal centre, bottom of movement zone
                 from src.ship_config import ShipConfig
+
                 ship_cfg = cfg.ship if cfg else ShipConfig()
                 spawn_y = h * ship_cfg.ship_zone_height_pct / 2.0
                 ship_spawn = (w / 2.0, spawn_y)
                 apply_spawn_safety(player.level_snapshot, ship_spawn, radius)
-                grid = EnemyGrid.from_snapshot(player.level_snapshot, enemy_cfg, w, h, debug=debug)
+                grid = EnemyGrid.from_snapshot(
+                    player.level_snapshot,
+                    enemy_cfg,
+                    w,
+                    h,
+                    debug=debug,
+                    sprite_scale=cfg.sprite_scale if cfg else 1.0,
+                )
             else:
-                grid = EnemyGrid(enemy_cfg, w, h, debug=debug)
+                grid = EnemyGrid(
+                    enemy_cfg, w, h, debug=debug, sprite_scale=cfg.sprite_scale if cfg else 1.0
+                )
                 grid.setup(level)
         else:
             grid = EnemyGrid(enemy_cfg, w, h, debug=debug)
@@ -179,9 +191,18 @@ class GameStateManager:
         if players and players[idx].level_snapshot is not None:
             dive_snap = players[idx].level_snapshot.get("diving")
         if dive_snap is not None:
-            dive_ctrl = DiveController.from_snapshot(dive_snap, diving_cfg, w, h, debug=debug)
+            dive_ctrl = DiveController.from_snapshot(
+                dive_snap,
+                diving_cfg,
+                w,
+                h,
+                debug=debug,
+                sprite_scale=cfg.sprite_scale if cfg else 1.0,
+            )
         else:
-            dive_ctrl = DiveController(diving_cfg, w, h, debug=debug)
+            dive_ctrl = DiveController(
+                diving_cfg, w, h, debug=debug, sprite_scale=cfg.sprite_scale if cfg else 1.0
+            )
             dive_ctrl.setup(level, enemy_grid=grid)
         self.context["dive_controller"] = dive_ctrl
 

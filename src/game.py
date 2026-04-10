@@ -1,4 +1,5 @@
 import arcade
+
 from src.background import ProceduralStarField, StaticBackground
 from src.game_config import GameConfig
 from src.music import MusicPlayer
@@ -21,7 +22,9 @@ class GameWindow(arcade.Window):
         arcade.load_font(resource_path("assets/fonts/kenvector_future_thin2.ttf"))
         bg = cfg.background
         self.background = StaticBackground(bg.background_image, w, h)
-        self.star_field = ProceduralStarField(w, h, bg.star_count, bg.star_speed_min, bg.star_speed_max)
+        self.star_field = ProceduralStarField(
+            w, h, bg.star_count, bg.star_speed_min, bg.star_speed_max
+        )
         self.music = MusicPlayer()
         self.music.set_volume(cfg.music_volume)
         self._manager = GameStateManager(self)

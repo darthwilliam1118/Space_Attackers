@@ -6,3 +6,9 @@ git tagging for releases:
 
 git tag v1.0.1
 git push origin v1.0.1
+
+pip install pre-commit  #enables local pre-commit hooks
+
+
+# running the game
+py -m src 

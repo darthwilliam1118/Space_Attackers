@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, call, patch
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from src.player_state import PlayerState
-from src.ui.hud import HUD, _MUTED, _WHITE
-
+from src.ui.hud import _MUTED, _WHITE, HUD
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 class FakeText:
     """Minimal arcade.Text stand-in for testing — no OpenGL required."""
@@ -46,6 +44,7 @@ def _player(num: int = 1, score: int = 0, lives: int = 3, level: int = 1) -> Pla
 # 1-player HUD
 # ---------------------------------------------------------------------------
 
+
 class TestHUD1P:
     def test_update_writes_score_on_change(self) -> None:
         hud = _hud1p()
@@ -59,7 +58,7 @@ class TestHUD1P:
         p = _player(score=100)
         hud.update([p], 0, 1)
         hud._score.text = "TAMPERED"  # simulate external write
-        hud.update([p], 0, 1)          # same score — should NOT overwrite
+        hud.update([p], 0, 1)  # same score — should NOT overwrite
         assert hud._score.text == "TAMPERED"
 
     def test_update_writes_level_on_change(self) -> None:
@@ -109,6 +108,7 @@ class TestHUD1P:
 # 2-player HUD
 # ---------------------------------------------------------------------------
 
+
 class TestHUD2P:
     def test_active_player_is_white(self) -> None:
         hud = _hud2p()
@@ -149,10 +149,12 @@ class TestHUD2P:
 # centered_text helper
 # ---------------------------------------------------------------------------
 
+
 class TestCenteredText:
     def test_anchor_x_is_center(self) -> None:
         with patch("src.ui.text_utils.arcade.Text") as MockText:
             from src.ui.text_utils import centered_text
+
             centered_text("hello", 800, 300)
             _, kwargs = MockText.call_args
             assert kwargs.get("anchor_x") == "center"
@@ -160,6 +162,7 @@ class TestCenteredText:
     def test_x_is_half_window_width(self) -> None:
         with patch("src.ui.text_utils.arcade.Text") as MockText:
             from src.ui.text_utils import centered_text
+
             centered_text("hello", 800, 300)
             _, kwargs = MockText.call_args
             assert kwargs.get("x") == 400.0
@@ -167,6 +170,7 @@ class TestCenteredText:
     def test_text_content_passed_through(self) -> None:
         with patch("src.ui.text_utils.arcade.Text") as MockText:
             from src.ui.text_utils import centered_text
+
             centered_text("SPACE ATTACKERS", 800, 300)
             _, kwargs = MockText.call_args
             assert kwargs.get("text") == "SPACE ATTACKERS"

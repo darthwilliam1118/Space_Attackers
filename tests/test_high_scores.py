@@ -5,9 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
-from src.high_scores import HighScoreEntry, HighScoreTable
+from src.high_scores import HighScoreTable
 
 
 def _full_table(tmp_path: Path) -> HighScoreTable:
@@ -21,6 +19,7 @@ def _full_table(tmp_path: Path) -> HighScoreTable:
 # ---------------------------------------------------------------------------
 # qualifies()
 # ---------------------------------------------------------------------------
+
 
 def test_qualifies_true_when_empty(tmp_path: Path) -> None:
     t = HighScoreTable(tmp_path / "hs.json")
@@ -54,6 +53,7 @@ def test_qualifies_false_when_below_lowest_and_full(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 # add()
 # ---------------------------------------------------------------------------
+
 
 def test_add_returns_rank_1_for_highest(tmp_path: Path) -> None:
     t = HighScoreTable(tmp_path / "hs.json")
@@ -103,6 +103,7 @@ def test_add_truncates_name_to_max_len(tmp_path: Path) -> None:
 # save() / load() round-trip
 # ---------------------------------------------------------------------------
 
+
 def test_save_returns_none_on_success(tmp_path: Path) -> None:
     t = HighScoreTable(tmp_path / "hs.json")
     t.add("AAA", 100)
@@ -135,6 +136,7 @@ def test_save_returns_error_string_on_failure(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 # load() error handling
 # ---------------------------------------------------------------------------
+
 
 def test_load_returns_empty_when_file_missing(tmp_path: Path) -> None:
     t = HighScoreTable.load(tmp_path / "nonexistent.json")

@@ -38,23 +38,35 @@ class GameOverView(arcade.View):
         self.window.music.play("ending")  # type: ignore[attr-defined]
         w, h = self.window.width, self.window.height
         self._title_text = centered_text(
-            "GAME OVER", w, h // 2 + 100,
-            font_size=48, color=arcade.color.RED, font_name=FONT_MAIN, bold=True,
+            "GAME OVER",
+            w,
+            h // 2 + 100,
+            font_size=48,
+            color=arcade.color.RED,
+            font_name=FONT_MAIN,
+            bold=True,
         )
 
         players = self._manager.context.get("players", [])
         self._score_texts = [
             centered_text(
                 f"Player {p.player_num}:  {p.score}",
-                w, h // 2 + 20 - i * 36,
-                font_size=24, color=arcade.color.WHITE, font_name=FONT_MAIN,
+                w,
+                h // 2 + 20 - i * 36,
+                font_size=24,
+                color=arcade.color.WHITE,
+                font_name=FONT_MAIN,
             )
             for i, p in enumerate(players)
         ]
 
         self._press_key_text = centered_text(
-            "PRESS ANY KEY", w, h // 2 - 80,
-            font_size=14, color=arcade.color.WHITE, font_name=FONT_THIN,
+            "PRESS ANY KEY",
+            w,
+            h // 2 - 80,
+            font_size=14,
+            color=arcade.color.WHITE,
+            font_name=FONT_THIN,
         )
 
     def on_update(self, delta_time: float) -> None:
@@ -69,10 +81,9 @@ class GameOverView(arcade.View):
         self._elapsed += delta_time
         if self._elapsed >= _DISPLAY_DURATION:
             from src.state import GameState
+
             next_state = (
-                GameState.SCORE_ENTRY
-                if self._qualifies_for_leaderboard()
-                else GameState.MAIN
+                GameState.SCORE_ENTRY if self._qualifies_for_leaderboard() else GameState.MAIN
             )
             self._manager.transition(next_state)
 

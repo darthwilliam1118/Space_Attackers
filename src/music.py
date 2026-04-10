@@ -35,7 +35,9 @@ class MusicPlayer:
     def __init__(self) -> None:
         self._sounds: dict[str, arcade.Sound] = {}
         self._current_key: Optional[str] = None
-        self._player: Optional[object] = None  # pyglet.media.player.Player returned by arcade.play_sound
+        self._player: Optional[object] = (
+            None  # pyglet.media.player.Player returned by arcade.play_sound
+        )
         self._volume: float = 0.8  # 0.0-1.0
         # All tracks are lazy-loaded: load_track() / play() on demand
 

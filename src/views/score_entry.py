@@ -54,9 +54,8 @@ class ScoreEntryView(arcade.View):
         self.window.music.play("ending")  # type: ignore[attr-defined]
 
         # Use pre-loaded table from GameOverView, or load fresh from disk
-        self._table = (
-            self._manager.context.get("high_score_table")
-            or HighScoreTable.load(scores_path())
+        self._table = self._manager.context.get("high_score_table") or HighScoreTable.load(
+            scores_path()
         )
 
         players = self._manager.context.get("players", [])
@@ -78,6 +77,7 @@ class ScoreEntryView(arcade.View):
             self._done_timer += delta_time
             if self._done_timer >= _DONE_DURATION:
                 from src.state import GameState
+
                 self._manager.transition(GameState.MAIN)
 
     def on_draw(self) -> None:
@@ -133,8 +133,13 @@ class ScoreEntryView(arcade.View):
         w, h = self.window.width, self.window.height
 
         self._title_text = centered_text(
-            "HIGH SCORES", w, h - 60,
-            font_size=36, color=arcade.color.GOLD, font_name=FONT_MAIN, bold=True,
+            "HIGH SCORES",
+            w,
+            h - 60,
+            font_size=36,
+            color=arcade.color.GOLD,
+            font_name=FONT_MAIN,
+            bold=True,
         )
 
         top_y = h - 110
@@ -152,49 +157,90 @@ class ScoreEntryView(arcade.View):
         for i in range(HighScoreTable.MAX_ENTRIES):
             y = top_y - i * row_h
             rank_t = arcade.Text(
-                "", rank_x, y, arcade.color.WHITE, _col_font_size,
-                font_name=FONT_THIN, anchor_x="right", anchor_y="center",
+                "",
+                rank_x,
+                y,
+                arcade.color.WHITE,
+                _col_font_size,
+                font_name=FONT_THIN,
+                anchor_x="right",
+                anchor_y="center",
             )
             name_t = arcade.Text(
-                "", name_x, y, arcade.color.WHITE, _col_font_size,
-                font_name=FONT_THIN, anchor_x="left", anchor_y="center",
+                "",
+                name_x,
+                y,
+                arcade.color.WHITE,
+                _col_font_size,
+                font_name=FONT_THIN,
+                anchor_x="left",
+                anchor_y="center",
             )
             score_t = arcade.Text(
-                "", score_x, y, arcade.color.WHITE, _col_font_size,
-                font_name=FONT_THIN, anchor_x="left", anchor_y="center",
+                "",
+                score_x,
+                y,
+                arcade.color.WHITE,
+                _col_font_size,
+                font_name=FONT_THIN,
+                anchor_x="left",
+                anchor_y="center",
             )
             self._entry_rows.append((rank_t, name_t, score_t))
 
         prompt_y = top_y - HighScoreTable.MAX_ENTRIES * row_h - 24
         self._prompt_text = centered_text(
-            "", w, prompt_y,
-            font_size=16, color=arcade.color.WHITE, font_name=FONT_THIN,
+            "",
+            w,
+            prompt_y,
+            font_size=16,
+            color=arcade.color.WHITE,
+            font_name=FONT_THIN,
         )
         self._name_text = centered_text(
-            "", w, prompt_y - 38,
-            font_size=28, color=arcade.color.GOLD, font_name=FONT_MAIN,
+            "",
+            w,
+            prompt_y - 38,
+            font_size=28,
+            color=arcade.color.GOLD,
+            font_name=FONT_MAIN,
         )
         # Cursor drawn separately so centering of the name is unaffected
         self._cursor_text = arcade.Text(
-            "_", 0, prompt_y - 38,
-            arcade.color.GOLD, 28,
+            "_",
+            0,
+            prompt_y - 38,
+            arcade.color.GOLD,
+            28,
             font_name=FONT_MAIN,
             anchor_x="left",
             anchor_y="center",
         )
         self._status_text = centered_text(
-            "", w, prompt_y - 80,
-            font_size=13, color=(140, 140, 140, 255), font_name=FONT_THIN,
+            "",
+            w,
+            prompt_y - 80,
+            font_size=13,
+            color=(140, 140, 140, 255),
+            font_name=FONT_THIN,
         )
 
         mid = h // 2
         self._error_line1 = centered_text(
-            "", w, mid + 20,
-            font_size=18, color=arcade.color.RED, font_name=FONT_THIN,
+            "",
+            w,
+            mid + 20,
+            font_size=18,
+            color=arcade.color.RED,
+            font_name=FONT_THIN,
         )
         self._error_line2 = centered_text(
-            "", w, mid - 20,
-            font_size=14, color=arcade.color.WHITE, font_name=FONT_THIN,
+            "",
+            w,
+            mid - 20,
+            font_size=14,
+            color=arcade.color.WHITE,
+            font_name=FONT_THIN,
         )
 
         self._refresh_rows()

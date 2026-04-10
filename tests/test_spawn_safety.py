@@ -2,8 +2,6 @@
 
 import math
 
-import pytest
-
 from src.spawn_safety import apply_spawn_safety
 
 SPAWN = (400.0, 60.0)
@@ -13,6 +11,7 @@ RADIUS = 80.0
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
+
 
 def _enemy(x: float, y: float, *, diving: bool = False) -> dict:
     return {
@@ -31,6 +30,7 @@ def _dist(enemy: dict, spawn: tuple[float, float]) -> float:
 # Edge case: no enemies
 # ---------------------------------------------------------------------------
 
+
 def test_no_enemies_is_noop() -> None:
     snapshot: dict = {"enemies": []}
     apply_spawn_safety(snapshot, SPAWN, RADIUS)
@@ -40,6 +40,7 @@ def test_no_enemies_is_noop() -> None:
 # ---------------------------------------------------------------------------
 # Rule 2: enemies outside radius are untouched
 # ---------------------------------------------------------------------------
+
 
 def test_enemy_outside_radius_unchanged() -> None:
     e = _enemy(SPAWN[0] + RADIUS + 10, SPAWN[1])
@@ -53,6 +54,7 @@ def test_enemy_outside_radius_unchanged() -> None:
 # Rule 2: enemies inside radius are nudged out
 # ---------------------------------------------------------------------------
 
+
 def test_enemy_inside_radius_pushed_out() -> None:
     e = _enemy(SPAWN[0] + 10, SPAWN[1] + 10)
     snapshot = {"enemies": [e]}
@@ -61,9 +63,7 @@ def test_enemy_inside_radius_pushed_out() -> None:
 
 
 def test_all_enemies_inside_radius_pushed_out() -> None:
-    enemies = [
-        _enemy(SPAWN[0] + d, SPAWN[1]) for d in [5, 15, 30, 50, 70]
-    ]
+    enemies = [_enemy(SPAWN[0] + d, SPAWN[1]) for d in [5, 15, 30, 50, 70]]
     snapshot = {"enemies": enemies}
     apply_spawn_safety(snapshot, SPAWN, RADIUS)
     for e in enemies:
@@ -82,6 +82,7 @@ def test_enemy_exactly_on_spawn_pushed_up() -> None:
 # ---------------------------------------------------------------------------
 # Rule 1: diving enemy snapped to formation before distance check
 # ---------------------------------------------------------------------------
+
 
 def test_diving_enemy_snapped_to_formation() -> None:
     # Enemy is close to spawn while diving; formation_pos is safe
@@ -106,6 +107,7 @@ def test_diving_enemy_snapped_then_still_pushed_if_formation_inside_radius() -> 
 # ---------------------------------------------------------------------------
 # Projectiles are NOT in snapshot (stripped before call) — no interference
 # ---------------------------------------------------------------------------
+
 
 def test_snapshot_without_projectiles_key() -> None:
     e = _enemy(SPAWN[0] + 200, SPAWN[1] + 200)

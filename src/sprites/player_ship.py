@@ -10,7 +10,7 @@ import arcade
 from src.paths import resource_path
 from src.ship_config import ShipConfig
 from src.sprites.explosion import ExplosionSprite
-from src.sprites.player_bullet import PlayerBullet, bullet_path_for
+from src.sprites.player_bullet import PlayerBullet
 
 _SHIP_PATHS: dict[int, str] = {
     1: "assets/images/PNG/playerShip1_blue.png",
@@ -35,6 +35,7 @@ class PlayerShip(arcade.Sprite):
         window_width: int,
         window_height: int,
         texture: Optional[arcade.Texture] = None,
+        scale: float = 1.0,
     ) -> None:
         if texture is not None:
             super().__init__(texture)
@@ -44,6 +45,8 @@ class PlayerShip(arcade.Sprite):
                 hit_box_algorithm=arcade.hitbox.algo_simple,
             )
             super().__init__(tex)
+        self.scale = scale
+        self._sprite_scale = scale
 
         self._player_num = player_num
         self._config = config
@@ -87,10 +90,10 @@ class PlayerShip(arcade.Sprite):
         accel = cfg.ship_accel * delta_time
         decel = cfg.ship_decel * delta_time
 
-        moving_left  = arcade.key.LEFT  in keys_held or arcade.key.A in keys_held
+        moving_left = arcade.key.LEFT in keys_held or arcade.key.A in keys_held
         moving_right = arcade.key.RIGHT in keys_held or arcade.key.D in keys_held
-        moving_up    = arcade.key.UP    in keys_held or arcade.key.W in keys_held
-        moving_down  = arcade.key.DOWN  in keys_held or arcade.key.S in keys_held
+        moving_up = arcade.key.UP in keys_held or arcade.key.W in keys_held
+        moving_down = arcade.key.DOWN in keys_held or arcade.key.S in keys_held
 
         # --- horizontal ---
         if moving_left and not moving_right:
@@ -137,6 +140,7 @@ class PlayerShip(arcade.Sprite):
             window_height=self._window_height,
             angle_deg=self._tilt_angle,
             player_num=self._player_num,
+            scale=self._sprite_scale,
         )
 
     def start_invincibility(self) -> None:
@@ -162,6 +166,7 @@ class PlayerShip(arcade.Sprite):
             frame_duration=self._config.explosion_frame_duration,
             vx=vx,
             vy=vy,
+            scale=self._sprite_scale,
         )
         self.remove_from_sprite_lists()
         return explosion

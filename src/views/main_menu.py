@@ -16,13 +16,14 @@ from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text, measure_text_
 
 _PAGES = ["LEADERBOARD", "INSTRUCTIONS"]
 _CYCLE_INTERVAL = 15.0  # seconds per page
-_SCROLL_SPEED = 28.0    # px/s for instruction autoscroll
-_LINE_HEIGHT = 26       # px between instruction lines
+_SCROLL_SPEED = 28.0  # px/s for instruction autoscroll
+_LINE_HEIGHT = 26  # px between instruction lines
 
 
 # ---------------------------------------------------------------------------
 # README parser
 # ---------------------------------------------------------------------------
+
 
 def _word_wrap(text: str, max_chars: int = 58) -> list[str]:
     """Break *text* at word boundaries so no line exceeds *max_chars*."""
@@ -112,7 +113,7 @@ def _parse_how_to_play() -> list[str]:
     license_lines: list[str] = []
     try:
         first3 = (root / "LICENSE").read_text(encoding="utf-8").splitlines()[:3]
-        license_lines = [l.rstrip() for l in first3 if l.strip()]
+        license_lines = [line.rstrip() for line in first3 if line.strip()]
     except Exception:
         pass
 
@@ -121,8 +122,8 @@ def _parse_how_to_play() -> list[str]:
         while result and not result[-1]:
             result.pop()
         result.extend(["", "CREDITS"])
-        for l in license_lines:
-            result.append(f"  {l}")
+        for line in license_lines:
+            result.append(f"  {line}")
         if assets:
             result.append("")
             result.extend(assets)
@@ -166,6 +167,7 @@ _FALLBACK_LINES = [
 # ---------------------------------------------------------------------------
 # View
 # ---------------------------------------------------------------------------
+
 
 class MainMenuView(arcade.View):
     """Cycles LEADERBOARD / INSTRUCTIONS pages.
@@ -217,20 +219,37 @@ class MainMenuView(arcade.View):
         self._content_bottom = 80.0
 
         self._title_text = centered_text(
-            "Space Attackers!", w, h - 50,
-            font_size=42, color=arcade.color.YELLOW, font_name=FONT_MAIN, bold=True,
+            "Space Attackers!",
+            w,
+            h - 50,
+            font_size=42,
+            color=arcade.color.YELLOW,
+            font_name=FONT_MAIN,
+            bold=True,
         )
         self._page_indicator = centered_text(
-            self._page_label(), w, h - 95,
-            font_size=22, color=arcade.color.CYAN, font_name=FONT_THIN,
+            self._page_label(),
+            w,
+            h - 95,
+            font_size=22,
+            color=arcade.color.CYAN,
+            font_name=FONT_THIN,
         )
         self._start_prompt = centered_text(
-            "PRESS 1 OR 2 TO START", w, 56,
-            font_size=16, color=arcade.color.WHITE, font_name=FONT_MAIN,
+            "PRESS 1 OR 2 TO START",
+            w,
+            56,
+            font_size=16,
+            color=arcade.color.WHITE,
+            font_name=FONT_MAIN,
         )
         self._hints_text = centered_text(
-            "C \u2014 CONFIG    X \u2014 EXIT", w, 24,
-            font_size=14, color=(160, 160, 160, 255), font_name=FONT_THIN,
+            "C \u2014 CONFIG    X \u2014 EXIT",
+            w,
+            24,
+            font_size=14,
+            color=(160, 160, 160, 255),
+            font_name=FONT_THIN,
         )
 
         self._build_leaderboard(w)
@@ -341,16 +360,34 @@ class MainMenuView(arcade.View):
                 color = (80, 80, 80, 255)
                 rank_str, name_str, score_str = f"#{rank}", "---", ""
             rank_t = arcade.Text(
-                rank_str, rank_x, y, color, _col_font_size,
-                font_name=FONT_THIN, anchor_x="right", anchor_y="center",
+                rank_str,
+                rank_x,
+                y,
+                color,
+                _col_font_size,
+                font_name=FONT_THIN,
+                anchor_x="right",
+                anchor_y="center",
             )
             name_t = arcade.Text(
-                name_str, name_x, y, color, _col_font_size,
-                font_name=FONT_THIN, anchor_x="left", anchor_y="center",
+                name_str,
+                name_x,
+                y,
+                color,
+                _col_font_size,
+                font_name=FONT_THIN,
+                anchor_x="left",
+                anchor_y="center",
             )
             score_t = arcade.Text(
-                score_str, score_x, y, color, _col_font_size,
-                font_name=FONT_THIN, anchor_x="left", anchor_y="center",
+                score_str,
+                score_x,
+                y,
+                color,
+                _col_font_size,
+                font_name=FONT_THIN,
+                anchor_x="left",
+                anchor_y="center",
             )
             self._lb_rows.append((rank_t, name_t, score_t))
 
@@ -359,24 +396,38 @@ class MainMenuView(arcade.View):
         self._instr_texts = []
         # Two-column rows are anchored either side of centre with a fixed gap.
         col_gap = 20
-        col_r = w // 2 - col_gap // 2   # right edge of left column
-        col_l = w // 2 + col_gap // 2   # left edge of right column
+        col_r = w // 2 - col_gap // 2  # right edge of left column
+        col_l = w // 2 + col_gap // 2  # left edge of right column
         for line in lines:
             if line.startswith("\t"):
                 parts = line.split("\t")  # ["", left_text, right_text]
                 left_t = arcade.Text(
-                    parts[1], col_r, 0, arcade.color.WHITE, 16,
-                    font_name=FONT_THIN, anchor_x="right", anchor_y="center",
+                    parts[1],
+                    col_r,
+                    0,
+                    arcade.color.WHITE,
+                    16,
+                    font_name=FONT_THIN,
+                    anchor_x="right",
+                    anchor_y="center",
                 )
                 right_t = arcade.Text(
-                    parts[2], col_l, 0, arcade.color.WHITE, 16,
-                    font_name=FONT_THIN, anchor_x="left", anchor_y="center",
+                    parts[2],
+                    col_l,
+                    0,
+                    arcade.color.WHITE,
+                    16,
+                    font_name=FONT_THIN,
+                    anchor_x="left",
+                    anchor_y="center",
                 )
                 self._instr_texts.append((left_t, right_t))
             else:
                 is_header = bool(line) and not line.startswith(" ") and line == line.upper()
                 t = centered_text(
-                    line, w, 0,  # y set dynamically in on_draw
+                    line,
+                    w,
+                    0,  # y set dynamically in on_draw
                     font_size=16,
                     color=arcade.color.CYAN if is_header else arcade.color.WHITE,
                     font_name=FONT_THIN,

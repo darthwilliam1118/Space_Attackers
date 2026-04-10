@@ -8,8 +8,8 @@ from typing import Optional
 
 @dataclass
 class PlayerState:
-    player_num: int               # 1 or 2
-    lives: int                    # remaining lives
+    player_num: int  # 1 or 2
+    lives: int  # remaining lives
     score: int = 0
     current_level: int = 1
     level_snapshot: Optional[dict] = field(default=None)  # None = fresh level

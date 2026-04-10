@@ -42,21 +42,33 @@ class HUD:
         if num_players == 1:
             self._score = factory(
                 text="SCORE: 000000",
-                x=16, y=y_top,
-                color=_WHITE, font_size=_FONT_SIZE,
-                font_name=FONT_MAIN, anchor_x="left", anchor_y="center",
+                x=16,
+                y=y_top,
+                color=_WHITE,
+                font_size=_FONT_SIZE,
+                font_name=FONT_MAIN,
+                anchor_x="left",
+                anchor_y="center",
             )
             self._level = factory(
                 text="LEVEL: 1",
-                x=window_width / 2, y=y_top,
-                color=_WHITE, font_size=_FONT_SIZE,
-                font_name=FONT_MAIN, anchor_x="center", anchor_y="center",
+                x=window_width / 2,
+                y=y_top,
+                color=_WHITE,
+                font_size=_FONT_SIZE,
+                font_name=FONT_MAIN,
+                anchor_x="center",
+                anchor_y="center",
             )
             self._lives = factory(
                 text="LIVES: ♥",
-                x=window_width - 16, y=y_top,
-                color=_WHITE, font_size=_FONT_SIZE,
-                font_name=FONT_MAIN, anchor_x="right", anchor_y="center",
+                x=window_width - 16,
+                y=y_top,
+                color=_WHITE,
+                font_size=_FONT_SIZE,
+                font_name=FONT_MAIN,
+                anchor_x="right",
+                anchor_y="center",
             )
             self._texts = [self._score, self._level, self._lives]
         else:
@@ -64,37 +76,60 @@ class HUD:
             y_bot = window_height - 44
             self._p1_score = factory(
                 text="P1: 000000",
-                x=16, y=y_top,
-                color=_WHITE, font_size=_FONT_SIZE,
-                font_name=FONT_MAIN, anchor_x="left", anchor_y="center",
+                x=16,
+                y=y_top,
+                color=_WHITE,
+                font_size=_FONT_SIZE,
+                font_name=FONT_MAIN,
+                anchor_x="left",
+                anchor_y="center",
             )
             self._level = factory(
                 text="LEVEL: 1",
-                x=window_width / 2, y=y_top,
-                color=_WHITE, font_size=_FONT_SIZE,
-                font_name=FONT_MAIN, anchor_x="center", anchor_y="center",
+                x=window_width / 2,
+                y=y_top,
+                color=_WHITE,
+                font_size=_FONT_SIZE,
+                font_name=FONT_MAIN,
+                anchor_x="center",
+                anchor_y="center",
             )
             self._p2_score = factory(
                 text="P2: 000000",
-                x=window_width - 16, y=y_top,
-                color=_MUTED, font_size=_FONT_SIZE,
-                font_name=FONT_MAIN, anchor_x="right", anchor_y="center",
+                x=window_width - 16,
+                y=y_top,
+                color=_MUTED,
+                font_size=_FONT_SIZE,
+                font_name=FONT_MAIN,
+                anchor_x="right",
+                anchor_y="center",
             )
             self._p1_lives = factory(
                 text="LIVES: ♥",
-                x=16, y=y_bot,
-                color=_WHITE, font_size=_FONT_SIZE,
-                font_name=FONT_MAIN, anchor_x="left", anchor_y="center",
+                x=16,
+                y=y_bot,
+                color=_WHITE,
+                font_size=_FONT_SIZE,
+                font_name=FONT_MAIN,
+                anchor_x="left",
+                anchor_y="center",
             )
             self._p2_lives = factory(
                 text="LIVES: ♥",
-                x=window_width - 16, y=y_bot,
-                color=_MUTED, font_size=_FONT_SIZE,
-                font_name=FONT_MAIN, anchor_x="right", anchor_y="center",
+                x=window_width - 16,
+                y=y_bot,
+                color=_MUTED,
+                font_size=_FONT_SIZE,
+                font_name=FONT_MAIN,
+                anchor_x="right",
+                anchor_y="center",
             )
             self._texts = [
-                self._p1_score, self._level, self._p2_score,
-                self._p1_lives, self._p2_lives,
+                self._p1_score,
+                self._level,
+                self._p2_score,
+                self._p1_lives,
+                self._p2_lives,
             ]
 
         # Cache: sentinel -1 forces first update to always write

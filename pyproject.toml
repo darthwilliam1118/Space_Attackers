@@ -16,5 +16,15 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]  # errors, pyflakes, warnings, isort
+
+[tool.black]
+line-length = 100
+
 ## Then install with `pip install -e ".[dev]"` to get everything including dev tools.
 

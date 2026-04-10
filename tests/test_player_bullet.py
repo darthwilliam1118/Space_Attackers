@@ -16,10 +16,12 @@ def _texture() -> arcade.Texture:
     return arcade.Texture.create_empty("bullet", (10, 30))
 
 
-def _bullet(x: float = 100, y: float = 50, speed: float = 500,
-            angle_deg: float = 0.0) -> PlayerBullet:
-    return PlayerBullet(x, y, speed=speed, window_width=W, window_height=H,
-                        angle_deg=angle_deg, texture=_texture())
+def _bullet(
+    x: float = 100, y: float = 50, speed: float = 500, angle_deg: float = 0.0
+) -> PlayerBullet:
+    return PlayerBullet(
+        x, y, speed=speed, window_width=W, window_height=H, angle_deg=angle_deg, texture=_texture()
+    )
 
 
 class TestBulletPaths:

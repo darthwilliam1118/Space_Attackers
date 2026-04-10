@@ -9,16 +9,16 @@ from typing import TYPE_CHECKING, Optional
 import arcade
 
 if TYPE_CHECKING:
-    from src.sprites.enemy_sprite import EnemySprite
-    from src.sprites.enemy_bullet import EnemyBullet
     from src.diving_config import DivingConfig
+    from src.sprites.enemy_bullet import EnemyBullet
+    from src.sprites.enemy_sprite import EnemySprite
 
 
 class DiveState(Enum):
-    WAITING = auto()    # counting down launch_delay before movement starts
-    DIVING = auto()     # advancing along waypoint path
+    WAITING = auto()  # counting down launch_delay before movement starts
+    DIVING = auto()  # advancing along waypoint path
     RETURNING = auto()  # path complete; flying directly back to home position
-    DONE = auto()       # reached home; ready for re-insertion into grid
+    DONE = auto()  # reached home; ready for re-insertion into grid
 
 
 class DivingShip(arcade.Sprite):
@@ -50,8 +50,11 @@ class DivingShip(arcade.Sprite):
         dive_speed: float = 200.0,
         launch_delay: float = 0.0,
         bullet_texture: Optional[arcade.Texture] = None,
+        scale: float = 1.0,
     ) -> None:
         super().__init__(source_sprite.texture)
+        self.scale = scale
+        self._sprite_scale = scale
         self.center_x = source_sprite.center_x
         self.center_y = source_sprite.center_y
 
@@ -69,8 +72,8 @@ class DivingShip(arcade.Sprite):
         self._bullet_texture: Optional[arcade.Texture] = bullet_texture
 
         # Path tracking
-        self._path_dist: float = 0.0        # distance travelled along path so far
-        self._segment_starts: list[float]   # cumulative distance at each waypoint
+        self._path_dist: float = 0.0  # distance travelled along path so far
+        self._segment_starts: list[float]  # cumulative distance at each waypoint
         self._total_path_length: float
         self._segment_starts, self._total_path_length = self._precompute_lengths()
 
@@ -226,10 +229,12 @@ class DivingShip(arcade.Sprite):
 
     def _fire_bomb(self) -> None:
         from src.sprites.enemy_bullet import EnemyBullet
+
         self._has_fired_bomb = True
         self._pending_bomb = EnemyBullet(
             x=self.center_x,
             y=self.center_y,
             speed=self._config.dive_bomb_speed,
             texture=self._bullet_texture,
+            scale=self._sprite_scale,
         )

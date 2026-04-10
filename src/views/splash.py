@@ -30,21 +30,30 @@ class SplashView(arcade.View):
         super().__init__()
         self._manager = manager
         self._elapsed: float = 0.0
-        self._ending_ready: bool = False   # "ending" track loaded; safe to play
+        self._ending_ready: bool = False  # "ending" track loaded; safe to play
         self._music_started: bool = False  # play() already called (main thread only)
-        self._assets_ready: bool = False   # all tracks loaded; show prompt
+        self._assets_ready: bool = False  # all tracks loaded; show prompt
         self._title_text: Optional[arcade.Text] = None
         self._prompt_text: Optional[arcade.Text] = None
 
     def on_show_view(self) -> None:
         w, h = self.window.width, self.window.height
         self._title_text = centered_text(
-            self.TITLE, w, h // 2 + 40,
-            font_size=64, color=arcade.color.YELLOW, font_name=FONT_MAIN, bold=True,
+            self.TITLE,
+            w,
+            h // 2 + 40,
+            font_size=64,
+            color=arcade.color.YELLOW,
+            font_name=FONT_MAIN,
+            bold=True,
         )
         self._prompt_text = centered_text(
-            self.PROMPT, w, int(h * 0.05),
-            font_size=18, color=arcade.color.WHITE, font_name=FONT_THIN,
+            self.PROMPT,
+            w,
+            int(h * 0.05),
+            font_size=18,
+            color=arcade.color.WHITE,
+            font_name=FONT_THIN,
         )
         # Load all music in the background; splash appears with no audio delay.
         # arcade.load_sound() is audio-only (no OpenGL) and safe from a worker thread.
@@ -71,6 +80,7 @@ class SplashView(arcade.View):
 
     def _go_to_main(self) -> None:
         from src.state import GameState
+
         self._manager.transition(GameState.MAIN)
 
     def on_draw(self) -> None:

@@ -93,6 +93,7 @@ class RunLevelView(arcade.View):
             config=ship_cfg,
             window_width=self.window.width,
             window_height=self.window.height,
+            scale=cfg.sprite_scale if cfg is not None else 1.0,
         )
         self._ship_list.append(self._ship)
         self._grid = ctx.get("enemy_grid")
@@ -141,8 +142,7 @@ class RunLevelView(arcade.View):
         if not self._dying and not self._waiting_for_dives and not self._level_cleared:
             grid_empty = self._grid is None or self._grid.is_cleared()
             no_airborne = (
-                self._dive_controller is None
-                or not self._dive_controller.has_any_airborne()
+                self._dive_controller is None or not self._dive_controller.has_any_airborne()
             )
             if grid_empty and no_airborne:
                 self._level_cleared = True
@@ -163,24 +163,18 @@ class RunLevelView(arcade.View):
             for bullet in list(self._player_bullets):
                 bullet.update(delta_time)  # type: ignore[arg-type]
             if self._grid is not None:
-                self._grid.update(delta_time, None)  # keep enemy animations alive; no player to collide
+                self._grid.update(
+                    delta_time, None
+                )  # keep enemy animations alive; no player to collide
             if self._dive_controller is not None:
-                self._dive_controller.update(
-                    delta_time, self._grid, None, arcade.SpriteList()
-                )
+                self._dive_controller.update(delta_time, self._grid, None, arcade.SpriteList())
             for popup in self._score_popups:
                 popup.update(delta_time)
             self._score_popups = [p for p in self._score_popups if not p.is_done]
-            explosion_done = (
-                self._death_explosion is None or self._death_explosion.is_complete
-            )
+            explosion_done = self._death_explosion is None or self._death_explosion.is_complete
             if explosion_done or self._death_timer >= 2.0:
                 ctx = self._manager.context
-                num_players = len(ctx.get("players", []))
-                if (
-                    self._dive_controller is not None
-                    and self._dive_controller.has_any_airborne()
-                ):
+                if self._dive_controller is not None and self._dive_controller.has_any_airborne():
                     self._dying = False
                     self._waiting_for_dives = True
                     self._dive_controller.new_dive_launches_blocked = True
@@ -193,9 +187,7 @@ class RunLevelView(arcade.View):
             if self._grid is not None:
                 self._grid.update(delta_time, None)  # grid moves; no player to collide
             if self._dive_controller is not None:
-                self._dive_controller.update(
-                    delta_time, self._grid, None, arcade.SpriteList()
-                )
+                self._dive_controller.update(delta_time, self._grid, None, arcade.SpriteList())
                 if not self._dive_controller.has_any_airborne():
                     self._waiting_for_dives = False
                     self._manager.transition(GameState.PLAYER_KILLED)
@@ -242,8 +234,7 @@ class RunLevelView(arcade.View):
         def _is_level_cleared() -> bool:
             grid_empty = self._grid is None or self._grid.is_cleared()
             no_airborne = (
-                self._dive_controller is None
-                or not self._dive_controller.has_any_airborne()
+                self._dive_controller is None or not self._dive_controller.has_any_airborne()
             )
             return grid_empty and no_airborne
 
@@ -258,12 +249,14 @@ class RunLevelView(arcade.View):
                 if hit is not None:
                     hit_x, hit_y, points = hit
                     vx, vy = self._grid.velocity if self._grid is not None else (0.0, 0.0)
+                    _cfg = self._manager.context.get("config")
                     exp = ExplosionSprite(
                         x=hit_x,
                         y=hit_y,
                         frame_duration=0.05,
                         vx=vx,
                         vy=vy,
+                        scale=_cfg.sprite_scale if _cfg is not None else 1.0,
                     )
                     self._explosions.append(exp)
                     bullet.remove_from_sprite_lists()
@@ -272,11 +265,15 @@ class RunLevelView(arcade.View):
                     self._update_score(points)
                     cfg = self._manager.context.get("config")
                     ui_cfg: UIConfig = cfg.ui if cfg is not None else UIConfig()
-                    self._score_popups.append(ScorePopup(
-                        hit_x, hit_y, points,
-                        duration=ui_cfg.popup_duration,
-                        rise_speed=ui_cfg.popup_rise_speed,
-                    ))
+                    self._score_popups.append(
+                        ScorePopup(
+                            hit_x,
+                            hit_y,
+                            points,
+                            duration=ui_cfg.popup_duration,
+                            rise_speed=ui_cfg.popup_rise_speed,
+                        )
+                    )
                     self.spawn_destruction_effect(hit_x, hit_y, vx, vy)
                     if _is_level_cleared():
                         self._level_cleared = True
@@ -287,12 +284,21 @@ class RunLevelView(arcade.View):
         collision_target = self._ship if not self._ship.is_invincible() else None
         bullets_before = len(self._grid.get_bullet_sprite_list())
         events = self._grid.update(delta_time, collision_target)
-        if len(self._grid.get_bullet_sprite_list()) > bullets_before and self._snd_enemy_shoot is not None:
+        if (
+            len(self._grid.get_bullet_sprite_list()) > bullets_before
+            and self._snd_enemy_shoot is not None
+        ):
             arcade.play_sound(self._snd_enemy_shoot, volume=self._sfx_volume())
 
         # Spawn explosions for grid enemies that collided with the player
         for hit_x, hit_y, _ in self._grid.consume_pending_hits():
-            exp = ExplosionSprite(x=hit_x, y=hit_y, frame_duration=0.05)
+            _cfg2 = self._manager.context.get("config")
+            exp = ExplosionSprite(
+                x=hit_x,
+                y=hit_y,
+                frame_duration=0.05,
+                scale=_cfg2.sprite_scale if _cfg2 is not None else 1.0,
+            )
             self._explosions.append(exp)
             self.spawn_destruction_effect(hit_x, hit_y, 0.0, 0.0)
             if self._snd_enemy_killed is not None:
@@ -321,12 +327,22 @@ class RunLevelView(arcade.View):
             ui_cfg: UIConfig = cfg.ui if cfg is not None else UIConfig()
             for hit_x, hit_y, points in self._dive_controller.consume_pending_hits():
                 self._update_score(points)
-                self._score_popups.append(ScorePopup(
-                    hit_x, hit_y, points,
-                    duration=ui_cfg.popup_duration,
-                    rise_speed=ui_cfg.popup_rise_speed,
-                ))
-                exp = ExplosionSprite(x=hit_x, y=hit_y, frame_duration=0.05)
+                self._score_popups.append(
+                    ScorePopup(
+                        hit_x,
+                        hit_y,
+                        points,
+                        duration=ui_cfg.popup_duration,
+                        rise_speed=ui_cfg.popup_rise_speed,
+                    )
+                )
+                _cfg3 = self._manager.context.get("config")
+                exp = ExplosionSprite(
+                    x=hit_x,
+                    y=hit_y,
+                    frame_duration=0.05,
+                    scale=_cfg3.sprite_scale if _cfg3 is not None else 1.0,
+                )
                 self._explosions.append(exp)
                 self.spawn_destruction_effect(hit_x, hit_y, 0.0, 0.0)
                 if self._snd_enemy_killed is not None:
@@ -375,10 +391,13 @@ class RunLevelView(arcade.View):
             arcade.draw_lrbt_rectangle_filled(0, w, 0, h, (0, 0, 0, 120))
             arcade.draw_text(
                 "PAUSED",
-                w / 2, h / 2,
-                arcade.color.WHITE, font_size=48,
+                w / 2,
+                h / 2,
+                arcade.color.WHITE,
+                font_size=48,
                 font_name=FONT_THIN,
-                anchor_x="center", anchor_y="center",
+                anchor_x="center",
+                anchor_y="center",
             )
 
     def on_key_press(self, key: int, modifiers: int) -> None:

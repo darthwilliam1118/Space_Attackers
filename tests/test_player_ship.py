@@ -6,9 +6,8 @@ import arcade
 import pytest
 
 from src.ship_config import ShipConfig
-from src.sprites.player_ship import PlayerShip
 from src.sprites.explosion import ExplosionSprite
-
+from src.sprites.player_ship import PlayerShip
 
 W, H = 800, 600
 
@@ -19,7 +18,9 @@ def _texture() -> arcade.Texture:
 
 def _ship(player_num: int = 1, **cfg_kwargs) -> PlayerShip:
     cfg = ShipConfig(**cfg_kwargs)
-    return PlayerShip(player_num=player_num, config=cfg, window_width=W, window_height=H, texture=_texture())
+    return PlayerShip(
+        player_num=player_num, config=cfg, window_width=W, window_height=H, texture=_texture()
+    )
 
 
 class TestSpawnPosition:
@@ -106,10 +107,12 @@ class TestFiring:
 
     def test_p1_bullet_uses_blue_laser(self) -> None:
         from src.sprites.player_bullet import bullet_path_for
+
         assert "Blue" in bullet_path_for(1)
 
     def test_p2_bullet_uses_red_laser(self) -> None:
         from src.sprites.player_bullet import bullet_path_for
+
         assert "Red" in bullet_path_for(2)
 
 

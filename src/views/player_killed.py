@@ -63,8 +63,13 @@ class PlayerKilledView(arcade.View):
         label = f"Player {players[idx].player_num}" if players else "Player"
 
         self._destroyed_text = centered_text(
-            f"{label} DESTROYED!", w, h // 2 + 40,
-            font_size=42, color=arcade.color.RED, font_name=FONT_MAIN, bold=True,
+            f"{label} DESTROYED!",
+            w,
+            h // 2 + 40,
+            font_size=42,
+            color=arcade.color.RED,
+            font_name=FONT_MAIN,
+            bold=True,
         )
 
         lives_str = ""
@@ -72,8 +77,12 @@ class PlayerKilledView(arcade.View):
             player = players[idx]
             lives_str = f"Lives remaining: {player.lives}"
         self._lives_text = centered_text(
-            lives_str, w, h // 2 - 20,
-            font_size=22, color=arcade.color.WHITE, font_name=FONT_THIN,
+            lives_str,
+            w,
+            h // 2 - 20,
+            font_size=22,
+            color=arcade.color.WHITE,
+            font_name=FONT_THIN,
         )
 
     def on_update(self, delta_time: float) -> None:

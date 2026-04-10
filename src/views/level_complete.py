@@ -43,8 +43,13 @@ class LevelCompleteView(arcade.View):
         self.window.music.play("ending")  # type: ignore[attr-defined]
         w, h = self.window.width, self.window.height
         self._title_text = centered_text(
-            "LEVEL COMPLETE!", w, h // 2 + 100,
-            font_size=48, color=arcade.color.GREEN, font_name=FONT_MAIN, bold=True,
+            "LEVEL COMPLETE!",
+            w,
+            h // 2 + 100,
+            font_size=48,
+            color=arcade.color.GREEN,
+            font_name=FONT_MAIN,
+            bold=True,
         )
 
         players = self._manager.context.get("players", [])
@@ -52,23 +57,34 @@ class LevelCompleteView(arcade.View):
         level = players[idx].current_level if players else 1
 
         self._bonus_text = centered_text(
-            f"LEVEL {level}    Bonus: +{_LEVEL_BONUS}", w, h // 2 + 40,
-            font_size=24, color=arcade.color.YELLOW, font_name=FONT_MAIN,
+            f"LEVEL {level}    Bonus: +{_LEVEL_BONUS}",
+            w,
+            h // 2 + 40,
+            font_size=24,
+            color=arcade.color.YELLOW,
+            font_name=FONT_MAIN,
         )
 
         alive = [p for p in players if p.is_alive]
         self._player_texts = [
             centered_text(
                 f"Player {p.player_num}:  {p.lives} lives   Score: {p.score}",
-                w, h // 2 - 10 - i * 32,
-                font_size=18, color=arcade.color.WHITE, font_name=FONT_THIN,
+                w,
+                h // 2 - 10 - i * 32,
+                font_size=18,
+                color=arcade.color.WHITE,
+                font_name=FONT_THIN,
             )
             for i, p in enumerate(alive)
         ]
 
         self._get_ready_text = centered_text(
-            "GET READY...", w, h // 2 - 90,
-            font_size=16, color=(255, 255, 255, 0), font_name=FONT_MAIN,
+            "GET READY...",
+            w,
+            h // 2 - 90,
+            font_size=16,
+            color=(255, 255, 255, 0),
+            font_name=FONT_MAIN,
         )
 
     def on_update(self, delta_time: float) -> None:
@@ -80,6 +96,7 @@ class LevelCompleteView(arcade.View):
 
         if self._elapsed >= _DISPLAY_DURATION:
             from src.state import GameState
+
             self._manager.transition(GameState.SET_ACTIVE_PLAYER)
 
     def on_draw(self) -> None:

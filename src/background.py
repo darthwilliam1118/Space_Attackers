@@ -63,7 +63,9 @@ class ProceduralStarField:
         # Parallel data lists — always maintained; used directly in test mode.
         self._x: list[float] = [random.uniform(0, window_width) for _ in range(star_count)]
         self._y: list[float] = [random.uniform(0, window_height) for _ in range(star_count)]
-        self._speed_list: list[float] = [random.uniform(speed_min, speed_max) for _ in range(star_count)]
+        self._speed_list: list[float] = [
+            random.uniform(speed_min, speed_max) for _ in range(star_count)
+        ]
         self._brightness: list[int] = [random.randint(120, 255) for _ in range(star_count)]
 
         # SpriteList used in production; None in test mode (skip GL init).

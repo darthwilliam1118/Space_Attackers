@@ -38,6 +38,7 @@ def _config(**overrides: object) -> ParticlesConfig:
 # Particle tests
 # ---------------------------------------------------------------------------
 
+
 class TestParticleMovement:
     def test_moves_by_velocity_times_delta(self) -> None:
         cfg = _config(particle_gravity=0.0)
@@ -123,6 +124,7 @@ class TestParticleMomentum:
 # ParticleEmitter tests
 # ---------------------------------------------------------------------------
 
+
 class TestParticleEmitter:
     def test_explode_adds_correct_count(self) -> None:
         cfg = _config(particle_count=7)
@@ -156,6 +158,7 @@ class TestParticleEmitter:
 # ---------------------------------------------------------------------------
 # ShockwaveSprite tests
 # ---------------------------------------------------------------------------
+
 
 class TestShockwaveSprite:
     def test_scale_increases_over_duration(self) -> None:

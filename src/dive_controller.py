@@ -11,9 +11,9 @@ from src.game_event import GameEvent
 
 if TYPE_CHECKING:
     from src.diving_config import DivingConfig
+    from src.enemy_grid import EnemyGrid
     from src.sprites.diving_ship import DivingShip
     from src.sprites.enemy_sprite import EnemySprite
-    from src.enemy_grid import EnemyGrid
     from src.sprites.player_ship import PlayerShip
 
 
@@ -34,11 +34,13 @@ class DiveController:
         window_width: int,
         window_height: int,
         debug: bool = False,
+        sprite_scale: float = 1.0,
     ) -> None:
         self._config = config
         self._window_width = window_width
         self._window_height = window_height
         self._debug = debug
+        self._sprite_scale = sprite_scale
 
         # Level-scaled (set by setup())
         self._level: int = 1
@@ -101,9 +103,10 @@ class DiveController:
         window_width: int,
         window_height: int,
         debug: bool = False,
+        sprite_scale: float = 1.0,
     ) -> "DiveController":
         """Restore DiveController from snapshot.  No airborne ships to restore."""
-        ctrl = cls(config, window_width, window_height, debug=debug)
+        ctrl = cls(config, window_width, window_height, debug=debug, sprite_scale=sprite_scale)
         ctrl.setup(snapshot["level"], enemy_grid=None)
         ctrl._dive_timer = snapshot["dive_timer"]
         return ctrl
@@ -155,6 +158,7 @@ class DiveController:
             # During RETURNING, track the live grid slot so the ship lands
             # exactly where the formation has drifted to.
             from src.sprites.diving_ship import DiveState
+
             if ship._state == DiveState.RETURNING and enemy_grid is not None:
                 tx, ty = enemy_grid.get_slot_position(ship.col, ship.row)
                 ship._home_x = tx
@@ -177,7 +181,7 @@ class DiveController:
         if enemy_grid is not None and self._active_ships:
             all_cols = [s.col for s in self._active_ships]
             all_cols.extend(s.col for s in enemy_grid._sprite_list)  # type: ignore[attr-defined]
-            enemy_grid._last_left_col  = min(all_cols)
+            enemy_grid._last_left_col = min(all_cols)
             enemy_grid._last_right_col = max(all_cols)
 
         # Return completed ships to grid
@@ -199,11 +203,13 @@ class DiveController:
             hits = arcade.check_for_collision_with_list(bullet, self._ship_list)
             for ship in hits:
                 bullet.remove_from_sprite_lists()
-                self._pending_hits.append((
-                    ship.center_x,
-                    ship.center_y,
-                    self._config.dive_bonus_points,
-                ))
+                self._pending_hits.append(
+                    (
+                        ship.center_x,
+                        ship.center_y,
+                        self._config.dive_bonus_points,
+                    )
+                )
                 ship.remove_from_sprite_lists()
                 if ship in self._active_ships:
                     self._active_ships.remove(ship)
@@ -216,11 +222,13 @@ class DiveController:
             hits = arcade.check_for_collision_with_list(player_ship, self._ship_list)
             if hits:
                 for ship in hits:
-                    self._pending_hits.append((
-                        ship.center_x,
-                        ship.center_y,
-                        self._config.dive_bonus_points,
-                    ))
+                    self._pending_hits.append(
+                        (
+                            ship.center_x,
+                            ship.center_y,
+                            self._config.dive_bonus_points,
+                        )
+                    )
                     ship.remove_from_sprite_lists()
                     if ship in self._active_ships:
                         self._active_ships.remove(ship)
@@ -243,8 +251,8 @@ class DiveController:
 
     def launch_group(self, enemy_grid: "EnemyGrid", player_x: float) -> None:
         """Select random eligible ships and launch them as a staggered group."""
-        from src.sprites.diving_ship import DivingShip
         from src.dive_path import make_dive_path
+        from src.sprites.diving_ship import DivingShip
 
         eligible: list["EnemySprite"] = list(enemy_grid.get_sprite_list())  # type: ignore[arg-type]
         if not eligible:
@@ -275,6 +283,7 @@ class DiveController:
                 window_height=self._window_height,
                 dive_speed=self._dive_speed,
                 launch_delay=i * self._STAGGER_DELAY,
+                scale=self._sprite_scale,
             )
             enemy_grid.remove_for_dive(source)
             self._active_ships.append(ship)

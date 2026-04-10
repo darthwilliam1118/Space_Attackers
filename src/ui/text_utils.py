@@ -12,8 +12,7 @@ _MUTED: tuple[int, int, int, int] = (128, 128, 128, 255)
 
 def measure_text_width(text: str, font_size: int, font_name: str = FONT_THIN) -> float:
     """Return the rendered pixel width of *text* at the given font and size."""
-    return arcade.Text(text, 0, 0, arcade.color.WHITE,
-                       font_size, font_name=font_name).content_width
+    return arcade.Text(text, 0, 0, arcade.color.WHITE, font_size, font_name=font_name).content_width
 
 
 def centered_text(

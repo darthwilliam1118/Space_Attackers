@@ -11,9 +11,9 @@ from src.particles_config import ParticlesConfig
 
 # Colours sampled randomly per particle
 _PARTICLE_COLORS: list[tuple[int, int, int, int]] = [
-    (255, 200, 50, 255),   # yellow
-    (255, 120, 20, 255),   # orange
-    (255, 60,  10, 255),   # red-orange
+    (255, 200, 50, 255),  # yellow
+    (255, 120, 20, 255),  # orange
+    (255, 60, 10, 255),  # red-orange
     (200, 200, 200, 255),  # grey (debris)
 ]
 

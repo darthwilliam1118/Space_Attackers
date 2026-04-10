@@ -35,6 +35,7 @@ class GameConfigView(arcade.View):
         super().__init__()
         self._manager = manager
         from src.game_config import GameConfig
+
         self._cfg = manager.context.get("config") or GameConfig.load()
         self._selected: int = 0  # index into _FIELDS
 
@@ -43,29 +44,42 @@ class GameConfigView(arcade.View):
         self._hint_text: Optional[arcade.Text] = None
 
         # Key-repeat state for LEFT/RIGHT held
-        self._repeat_key: Optional[int] = None   # arcade.key.LEFT or RIGHT
-        self._repeat_initial: float = 0.4        # seconds before repeat starts
-        self._repeat_interval: float = 0.08      # seconds between repeats
+        self._repeat_key: Optional[int] = None  # arcade.key.LEFT or RIGHT
+        self._repeat_initial: float = 0.4  # seconds before repeat starts
+        self._repeat_interval: float = 0.08  # seconds between repeats
         self._repeat_timer: float = 0.0
 
     def on_show_view(self) -> None:
         self.window.music.play("ending")  # type: ignore[attr-defined]
         w, h = self.window.width, self.window.height
         self._title_text = centered_text(
-            "GAME CONFIG", w, h - 80,
-            font_size=40, color=arcade.color.CYAN, font_name=FONT_MAIN, bold=True,
+            "GAME CONFIG",
+            w,
+            h - 80,
+            font_size=40,
+            color=arcade.color.CYAN,
+            font_name=FONT_MAIN,
+            bold=True,
         )
         top_y = h // 2 + (len(_FIELDS) // 2) * 46
         self._field_texts = [
             centered_text(
-                "", w, top_y - i * 46,
-                font_size=22, color=arcade.color.WHITE, font_name=FONT_THIN,
+                "",
+                w,
+                top_y - i * 46,
+                font_size=22,
+                color=arcade.color.WHITE,
+                font_name=FONT_THIN,
             )
             for i in range(len(_FIELDS))
         ]
         self._hint_text = centered_text(
             "↑ ↓ = select    ← → = change value    ESC = save & return",
-            w, int(h * 0.05), font_size=14, color=(160, 160, 160, 255), font_name=FONT_THIN,
+            w,
+            int(h * 0.05),
+            font_size=14,
+            color=(160, 160, 160, 255),
+            font_name=FONT_THIN,
         )
         self._refresh_fields()
 

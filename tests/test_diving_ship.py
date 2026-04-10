@@ -6,7 +6,7 @@ import arcade
 import pytest
 
 from src.diving_config import DivingConfig
-from src.sprites.diving_ship import DivingShip, DiveState
+from src.sprites.diving_ship import DiveState, DivingShip
 from src.sprites.enemy_sprite import EnemySprite
 
 W, H = 800, 1000

@@ -35,6 +35,7 @@ class EnemySprite(arcade.Sprite):
         col: int,
         row: int,
         texture: Optional[arcade.Texture] = None,
+        scale: float = 1.0,
     ) -> None:
         if texture is not None:
             super().__init__(texture)
@@ -44,6 +45,7 @@ class EnemySprite(arcade.Sprite):
                 hit_box_algorithm=arcade.hitbox.algo_simple,
             )
             super().__init__(tex)
+        self.scale = scale
         self.color_name: str = color
         self.ship_type: int = ship_type
         self.col: int = col

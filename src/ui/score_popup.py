@@ -44,6 +44,7 @@ class ScorePopup:
             self._label.color = (255, 220, 50, 255)
         else:
             import arcade
+
             self._label = arcade.Text(  # type: ignore[assignment]
                 f"+{value}",
                 x,

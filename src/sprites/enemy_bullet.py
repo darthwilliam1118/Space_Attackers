@@ -23,6 +23,7 @@ class EnemyBullet(arcade.Sprite):
         y: float,
         speed: float,
         texture: Optional[arcade.Texture] = None,
+        scale: float = 1.0,
     ) -> None:
         if texture is not None:
             super().__init__(texture)
@@ -32,6 +33,7 @@ class EnemyBullet(arcade.Sprite):
                 hit_box_algorithm=arcade.hitbox.algo_simple,
             )
             super().__init__(tex)
+        self.scale = scale
         self.center_x = x
         self.center_y = y
         self.angle = 180

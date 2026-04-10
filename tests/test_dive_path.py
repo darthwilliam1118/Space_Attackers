@@ -73,6 +73,7 @@ class TestMakeDivePath:
         """Positive and negative curve_sign should produce mirrored arcs."""
         start = (400.0, 800.0)
         import random
+
         rng_state = random.getstate()
 
         random.seed(42)

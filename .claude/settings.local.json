@@ -3,7 +3,11 @@
     "allow": [
       "Bash(venv/Scripts/python -m pytest --cov=src -v)",
       "Bash(venv/Scripts/python -m pytest --cov=src -q)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(ruff check:*)",
+      "Bash(find /c/Users/darth/Code/Space_Attackers/src -name \"*.py\" -exec grep -l \"\\\\.width\\\\|\\\\.height\" {} \\\\;)",
+      "Bash(black .)",
+      "Bash(pytest --cov=src -q)"
     ]
   }
 }

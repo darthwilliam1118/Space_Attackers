@@ -9,21 +9,30 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from src.player_state import PlayerState
 from src.state import GameState
-
 
 # ---------------------------------------------------------------------------
 # GameState enum
 # ---------------------------------------------------------------------------
 
+
 def test_all_expected_states_exist() -> None:
     expected = {
-        "SPLASH", "MAIN", "GAME_CONFIG", "GAME_INIT", "SET_ACTIVE_PLAYER",
-        "START_LEVEL", "RUN_LEVEL", "LEVEL_COMPLETE", "PLAYER_KILLED",
-        "SAVE_SNAPSHOT_AND_SWITCH", "DROP_TO_1P", "GAME_OVER", "SCORE_ENTRY", "EXIT",
+        "SPLASH",
+        "MAIN",
+        "GAME_CONFIG",
+        "GAME_INIT",
+        "SET_ACTIVE_PLAYER",
+        "START_LEVEL",
+        "RUN_LEVEL",
+        "LEVEL_COMPLETE",
+        "PLAYER_KILLED",
+        "SAVE_SNAPSHOT_AND_SWITCH",
+        "DROP_TO_1P",
+        "GAME_OVER",
+        "SCORE_ENTRY",
+        "EXIT",
     }
     actual = {s.name for s in GameState}
     assert expected == actual
@@ -34,6 +43,7 @@ def test_all_expected_states_exist() -> None:
 # ---------------------------------------------------------------------------
 # We test _resolve_next() in isolation by constructing a fake manager context
 # and calling the method directly — no Arcade window needed.
+
 
 def _fake_manager(players: list[PlayerState], active_index: int) -> MagicMock:
     manager = MagicMock()
@@ -46,6 +56,7 @@ def _fake_manager(players: list[PlayerState], active_index: int) -> MagicMock:
 
 def _resolve(players: list[PlayerState], active_index: int):
     from src.views.player_killed import PlayerKilledView
+
     manager = _fake_manager(players, active_index)
     view = PlayerKilledView.__new__(PlayerKilledView)
     view._manager = manager

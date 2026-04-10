@@ -28,8 +28,10 @@ def _cfg(**kwargs) -> DivingConfig:
 
 def _grid(cols: int = 5, rows: int = 3, level: int = 2) -> EnemyGrid:
     ec = EnemyConfig(
-        enemy_cols_start=cols, enemy_cols_max=cols,
-        enemy_rows_start=rows, enemy_rows_max=rows,
+        enemy_cols_start=cols,
+        enemy_cols_max=cols,
+        enemy_rows_start=rows,
+        enemy_rows_max=rows,
     )
     g = EnemyGrid(ec, W, H, enemy_texture=_enemy_tex(), bullet_texture=_bullet_tex())
     g.setup(level=level)
@@ -103,8 +105,7 @@ class TestLaunchGroup:
 
     def test_handles_fewer_eligible_ships_than_group_size(self) -> None:
         # Only 1 enemy in grid, group_size > 1
-        ec = EnemyConfig(enemy_cols_start=1, enemy_cols_max=1,
-                         enemy_rows_start=1, enemy_rows_max=1)
+        ec = EnemyConfig(enemy_cols_start=1, enemy_cols_max=1, enemy_rows_start=1, enemy_rows_max=1)
         grid = EnemyGrid(ec, W, H, enemy_texture=_enemy_tex(), bullet_texture=_bullet_tex())
         grid.setup(level=2)
         cfg = _cfg(dive_group_size_max=4)
