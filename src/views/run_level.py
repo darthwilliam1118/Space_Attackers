@@ -325,10 +325,7 @@ class RunLevelView(arcade.View):
         _cfg = self._manager.context.get("config")
         god_mode: bool = _cfg.god_mode if _cfg is not None else False
 
-        if (
-            self._ship.hit_points < ship_hp_before_grid
-            and GameEvent.PLAYER_KILLED not in events
-        ):
+        if self._ship.hit_points < ship_hp_before_grid and GameEvent.PLAYER_KILLED not in events:
             self._spawn_hit_ring(self._ship.center_x, self._ship.center_y)
 
         for event in events:
