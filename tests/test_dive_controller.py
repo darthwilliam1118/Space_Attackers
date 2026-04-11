@@ -198,11 +198,12 @@ class TestLevelCompleteGuard:
         assert ctrl.active_count() == 1
 
         ship = ctrl._active_ships[0]
-        # Place a bullet directly on the ship
+        # Place a bullet directly on the ship with enough damage to kill it
         bullet_tex = arcade.Texture.create_empty("pb", (9, 54))
         bullet = arcade.Sprite(bullet_tex)
         bullet.center_x = ship.center_x
         bullet.center_y = ship.center_y
+        bullet.damage = 9999  # type: ignore[attr-defined]
         bullets = arcade.SpriteList()
         bullets.append(bullet)
 

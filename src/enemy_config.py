@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -31,3 +31,10 @@ class EnemyConfig:
     enemy_fire_interval_min_cap: float = 0.5
     enemy_fire_interval_max_cap: float = 1.0
     enemy_bullet_speed: float = 250.0
+    enemy_bullet_damage: int = 20
+
+    # Hit points per ship_type (1–5); scaled by level via enemy_hp_level_factor
+    enemy_hp: dict[int, int] = field(
+        default_factory=lambda: {1: 100, 2: 100, 3: 150, 4: 150, 5: 200}
+    )
+    enemy_hp_level_factor: float = 1.25

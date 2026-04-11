@@ -92,6 +92,10 @@ class GameConfig:
             explosion_frame_duration=float(
                 ship.get("explosion_frame_duration", ShipConfig.explosion_frame_duration)
             ),
+            player_max_hp=int(ship.get("player_max_hp", ShipConfig.player_max_hp)),
+            player_bullet_damage=int(
+                ship.get("player_bullet_damage", ShipConfig.player_bullet_damage)
+            ),
         )
         ec_raw = data.get("enemies", {})
         ec = EnemyConfig(
@@ -142,6 +146,19 @@ class GameConfig:
             enemy_bullet_speed=float(
                 ec_raw.get("enemy_bullet_speed", EnemyConfig.enemy_bullet_speed)
             ),
+            enemy_bullet_damage=int(
+                ec_raw.get("enemy_bullet_damage", EnemyConfig.enemy_bullet_damage)
+            ),
+            enemy_hp={
+                1: int(ec_raw.get("enemy_hp_type_1", 100)),
+                2: int(ec_raw.get("enemy_hp_type_2", 100)),
+                3: int(ec_raw.get("enemy_hp_type_3", 150)),
+                4: int(ec_raw.get("enemy_hp_type_4", 150)),
+                5: int(ec_raw.get("enemy_hp_type_5", 200)),
+            },
+            enemy_hp_level_factor=float(
+                ec_raw.get("enemy_hp_level_factor", EnemyConfig.enemy_hp_level_factor)
+            ),
         )
         bg_raw = data.get("background", {})
         bc = BackgroundConfig(
@@ -179,6 +196,9 @@ class GameConfig:
         uc = UIConfig(
             popup_duration=float(ui_raw.get("popup_duration", UIConfig.popup_duration)),
             popup_rise_speed=float(ui_raw.get("popup_rise_speed", UIConfig.popup_rise_speed)),
+            hp_bar_duration=float(ui_raw.get("hp_bar_duration", UIConfig.hp_bar_duration)),
+            hp_bar_height=int(ui_raw.get("hp_bar_height", UIConfig.hp_bar_height)),
+            hp_bar_y_offset=int(ui_raw.get("hp_bar_y_offset", UIConfig.hp_bar_y_offset)),
         )
         dc_raw = data.get("diving", {})
         dc = DivingConfig(
@@ -247,6 +267,8 @@ class GameConfig:
             f"spawn_invincible_duration = {sc.spawn_invincible_duration}\n",
             f"ship_zone_height_pct = {sc.ship_zone_height_pct}\n",
             f"explosion_frame_duration = {sc.explosion_frame_duration}\n",
+            f"player_max_hp = {sc.player_max_hp}\n",
+            f"player_bullet_damage = {sc.player_bullet_damage}\n",
         ]
         bg = self.background
         lines += [
@@ -277,12 +299,22 @@ class GameConfig:
             f"enemy_fire_interval_min_cap = {ec.enemy_fire_interval_min_cap}\n",
             f"enemy_fire_interval_max_cap = {ec.enemy_fire_interval_max_cap}\n",
             f"enemy_bullet_speed = {ec.enemy_bullet_speed}\n",
+            f"enemy_bullet_damage = {ec.enemy_bullet_damage}\n",
+            f"enemy_hp_type_1 = {ec.enemy_hp.get(1, 100)}\n",
+            f"enemy_hp_type_2 = {ec.enemy_hp.get(2, 100)}\n",
+            f"enemy_hp_type_3 = {ec.enemy_hp.get(3, 150)}\n",
+            f"enemy_hp_type_4 = {ec.enemy_hp.get(4, 150)}\n",
+            f"enemy_hp_type_5 = {ec.enemy_hp.get(5, 200)}\n",
+            f"enemy_hp_level_factor = {ec.enemy_hp_level_factor}\n",
         ]
         uc = self.ui
         lines += [
             "\n[ui]\n",
             f"popup_duration = {uc.popup_duration}\n",
             f"popup_rise_speed = {uc.popup_rise_speed}\n",
+            f"hp_bar_duration = {uc.hp_bar_duration}\n",
+            f"hp_bar_height = {uc.hp_bar_height}\n",
+            f"hp_bar_y_offset = {uc.hp_bar_y_offset}\n",
         ]
         dv = self.diving
         lines += [

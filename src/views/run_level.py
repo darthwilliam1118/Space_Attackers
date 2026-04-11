@@ -20,7 +20,7 @@ from src.sprites.particles import ParticleEmitter, ShockwaveSprite
 from src.sprites.player_ship import PlayerShip
 from src.ui.hud import HUD
 from src.ui.score_popup import ScorePopup
-from src.ui.text_utils import FONT_THIN, centered_text
+from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
 from src.ui_config import UIConfig
 
 _SND_ENEMY_KILLED = "assets/sounds/explosionCrunch_000.ogg"
@@ -65,6 +65,7 @@ class RunLevelView(arcade.View):
         self._score_popups: list[ScorePopup] = []
 
         self._hud: Optional[HUD] = None
+        self._hp_label: Optional[arcade.Text] = None
         self._debug_text: Optional[arcade.Text] = None
         self._debug: bool = False
 
@@ -101,6 +102,18 @@ class RunLevelView(arcade.View):
         self._debug = cfg.debug if cfg else False
         if cfg is not None:
             self._particle_emitter = ParticleEmitter(cfg.particles)
+
+        w = self.window.width
+        self._hp_label = arcade.Text(
+            text="HP",
+            x=w / 2 - 100 - 8,
+            y=24,
+            color=(255, 255, 255, 255),
+            font_size=16,
+            font_name=FONT_MAIN,
+            anchor_x="right",
+            anchor_y="center",
+        )
 
         self._snd_enemy_killed = arcade.load_sound(resource_path(_SND_ENEMY_KILLED))
         self._snd_player_killed = arcade.load_sound(resource_path(_SND_PLAYER_KILLED))
@@ -247,42 +260,47 @@ class RunLevelView(arcade.View):
             if bullet.sprite_lists:  # still alive (not self-removed from off-screen)
                 hit = self._grid.apply_player_bullet(bullet)
                 if hit is not None:
-                    hit_x, hit_y, points = hit
-                    vx, vy = self._grid.velocity if self._grid is not None else (0.0, 0.0)
-                    _cfg = self._manager.context.get("config")
-                    exp = ExplosionSprite(
-                        x=hit_x,
-                        y=hit_y,
-                        frame_duration=0.05,
-                        vx=vx,
-                        vy=vy,
-                        scale=_cfg.sprite_scale if _cfg is not None else 1.0,
-                    )
-                    self._explosions.append(exp)
                     bullet.remove_from_sprite_lists()
-                    if self._snd_enemy_killed is not None:
-                        arcade.play_sound(self._snd_enemy_killed, volume=self._sfx_volume())
-                    self._update_score(points)
-                    cfg = self._manager.context.get("config")
-                    ui_cfg: UIConfig = cfg.ui if cfg is not None else UIConfig()
-                    self._score_popups.append(
-                        ScorePopup(
-                            hit_x,
-                            hit_y,
-                            points,
-                            duration=ui_cfg.popup_duration,
-                            rise_speed=ui_cfg.popup_rise_speed,
+                    if hit.killed:
+                        hit_x, hit_y, points = hit.cx, hit.cy, hit.points
+                        vx, vy = self._grid.velocity if self._grid is not None else (0.0, 0.0)
+                        _cfg = self._manager.context.get("config")
+                        exp = ExplosionSprite(
+                            x=hit_x,
+                            y=hit_y,
+                            frame_duration=0.05,
+                            vx=vx,
+                            vy=vy,
+                            scale=_cfg.sprite_scale if _cfg is not None else 1.0,
                         )
-                    )
-                    self.spawn_destruction_effect(hit_x, hit_y, vx, vy)
-                    if _is_level_cleared():
-                        self._level_cleared = True
-                        return
+                        self._explosions.append(exp)
+                        if self._snd_enemy_killed is not None:
+                            arcade.play_sound(self._snd_enemy_killed, volume=self._sfx_volume())
+                        self._update_score(points)
+                        cfg = self._manager.context.get("config")
+                        ui_cfg: UIConfig = cfg.ui if cfg is not None else UIConfig()
+                        self._score_popups.append(
+                            ScorePopup(
+                                hit_x,
+                                hit_y,
+                                points,
+                                duration=ui_cfg.popup_duration,
+                                rise_speed=ui_cfg.popup_rise_speed,
+                            )
+                        )
+                        self.spawn_destruction_effect(hit_x, hit_y, vx, vy)
+                        if _is_level_cleared():
+                            self._level_cleared = True
+                            return
+                    else:
+                        vx, vy = self._grid.velocity if self._grid is not None else (0.0, 0.0)
+                        self._spawn_hit_ring(hit.cx, hit.cy, vx, vy)
 
         # Enemy grid: movement, shooting, collision detection
         # Collisions are skipped while player is invincible
         collision_target = self._ship if not self._ship.is_invincible() else None
         bullets_before = len(self._grid.get_bullet_sprite_list())
+        ship_hp_before_grid = self._ship.hit_points
         events = self._grid.update(delta_time, collision_target)
         if (
             len(self._grid.get_bullet_sprite_list()) > bullets_before
@@ -307,6 +325,12 @@ class RunLevelView(arcade.View):
         _cfg = self._manager.context.get("config")
         god_mode: bool = _cfg.god_mode if _cfg is not None else False
 
+        if (
+            self._ship.hit_points < ship_hp_before_grid
+            and GameEvent.PLAYER_KILLED not in events
+        ):
+            self._spawn_hit_ring(self._ship.center_x, self._ship.center_y)
+
         for event in events:
             if event == GameEvent.PLAYER_KILLED:
                 if not god_mode:
@@ -318,6 +342,7 @@ class RunLevelView(arcade.View):
 
         # Dive controller: update and handle events
         if self._dive_controller is not None:
+            ship_hp_before_dive = self._ship.hit_points
             dive_events = self._dive_controller.update(
                 delta_time, self._grid, self._ship, self._player_bullets
             )
@@ -347,6 +372,13 @@ class RunLevelView(arcade.View):
                 self.spawn_destruction_effect(hit_x, hit_y, 0.0, 0.0)
                 if self._snd_enemy_killed is not None:
                     arcade.play_sound(self._snd_enemy_killed, volume=self._sfx_volume())
+            for hit_x, hit_y in self._dive_controller.consume_pending_non_lethal_hits():
+                self._spawn_hit_ring(hit_x, hit_y)
+            if (
+                self._ship.hit_points < ship_hp_before_dive
+                and GameEvent.PLAYER_KILLED not in dive_events
+            ):
+                self._spawn_hit_ring(self._ship.center_x, self._ship.center_y)
             for event in dive_events:
                 if event == GameEvent.PLAYER_KILLED:
                     if not god_mode:
@@ -376,6 +408,9 @@ class RunLevelView(arcade.View):
         self._explosions.draw()
         if self._particle_emitter is not None:
             self._particle_emitter.draw()
+
+        self._draw_enemy_hp_bars()
+        self._draw_player_hp_bar()
 
         for popup in self._score_popups:
             popup.draw()
@@ -480,6 +515,89 @@ class RunLevelView(arcade.View):
         if cfg is not None:
             shockwave = ShockwaveSprite(x, y, cfg.particles, vx, vy)
             self._shockwaves.append(shockwave)
+
+    # ------------------------------------------------------------------
+    # HP bar and flash rendering
+    # ------------------------------------------------------------------
+
+    def _spawn_hit_ring(self, x: float, y: float, vx: float = 0.0, vy: float = 0.0) -> None:
+        """Spawn a small expanding shockwave ring at *(x, y)* for a non-lethal hit."""
+        cfg = self._manager.context.get("config")
+        if cfg is not None:
+            ring = ShockwaveSprite(x, y, cfg.particles, vx=vx, vy=vy, duration=0.3, max_scale=1.2)
+            self._shockwaves.append(ring)
+
+    def _draw_enemy_hp_bars(self) -> None:
+        """Draw HP bars above any enemy with an active hp_bar_timer."""
+        cfg = self._manager.context.get("config")
+        ui_cfg: UIConfig = cfg.ui if cfg is not None else UIConfig()
+        bar_h = ui_cfg.hp_bar_height
+        y_off = ui_cfg.hp_bar_y_offset
+
+        sprites = []
+        if self._grid is not None:
+            sprites.extend(self._grid.get_sprite_list())
+        if self._dive_controller is not None:
+            sprites.extend(self._dive_controller.get_ship_sprite_list())
+
+        for enemy in sprites:
+            if enemy.hp_bar_timer <= 0 or enemy.max_hit_points == 0:
+                continue
+            hp_pct = max(0.0, enemy.hit_points / enemy.max_hit_points)
+            bar_w = enemy.width
+            bar_x = enemy.center_x
+            bar_y = enemy.center_y + enemy.height / 2 + y_off
+
+            if hp_pct > 0.75:
+                fill_color = (0, 191, 0)
+            elif hp_pct > 0.25:
+                fill_color = (191, 191, 0)
+            else:
+                fill_color = (191, 0, 0)
+
+            arcade.draw_lbwh_rectangle_outline(
+                bar_x - bar_w / 2, bar_y - bar_h / 2, bar_w, bar_h, (191, 191, 191), 2
+            )
+            filled_w = bar_w * hp_pct
+            if filled_w > 0:
+                arcade.draw_lbwh_rectangle_filled(
+                    bar_x - bar_w / 2,
+                    bar_y - bar_h / 2,
+                    filled_w,
+                    bar_h,
+                    fill_color,
+                )
+
+    def _draw_player_hp_bar(self) -> None:
+        """Draw the player HP bar at the bottom-centre of the screen."""
+        if self._ship is None or self._hp_label is None:
+            return
+        bar_w = 200
+        bar_h = 18
+        bar_x = self.window.width / 2.0
+        bar_y = 24.0
+
+        hp_pct = max(0.0, self._ship.hit_points / self._ship.max_hit_points)
+        if hp_pct > 0.75:
+            fill_color = (0, 191, 0)
+        elif hp_pct > 0.25:
+            fill_color = (191, 191, 0)
+        else:
+            fill_color = (191, 0, 0)
+
+        arcade.draw_lbwh_rectangle_outline(
+            bar_x - bar_w / 2, bar_y - bar_h / 2, bar_w, bar_h, (191, 191, 191), 2
+        )
+        filled_w = bar_w * hp_pct
+        if filled_w > 0:
+            arcade.draw_lbwh_rectangle_filled(
+                bar_x - bar_w / 2,
+                bar_y - bar_h / 2,
+                filled_w,
+                bar_h,
+                fill_color,
+            )
+        self._hp_label.draw()
 
     def _update_score(self, points: int) -> None:
         players = self._manager.context.get("players", [])

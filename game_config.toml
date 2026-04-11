@@ -1,5 +1,5 @@
 [game]
-starting_level = 10
+starting_level = 1
 num_lives = 3
 spawn_safe_radius = 80
 music_volume = 6
@@ -19,6 +19,8 @@ bullet_speed = 500.0
 spawn_invincible_duration = 2.0
 ship_zone_height_pct = 0.33
 explosion_frame_duration = 0.05
+player_max_hp = 100
+player_bullet_damage = 100
 
 [background]
 background_image = "assets/images/Backgrounds/darkPurple.png"
@@ -45,10 +47,20 @@ enemy_fire_interval_scale = 0.95
 enemy_fire_interval_min_cap = 1.0
 enemy_fire_interval_max_cap = 2.0
 enemy_bullet_speed = 250.0
+enemy_bullet_damage = 20
+enemy_hp_type_1 = 200
+enemy_hp_type_2 = 150
+enemy_hp_type_3 = 150
+enemy_hp_type_4 = 100
+enemy_hp_type_5 = 100
+enemy_hp_level_factor = 1.1
 
 [ui]
 popup_duration = 0.8
 popup_rise_speed = 60.0
+hp_bar_duration = 1.0
+hp_bar_height = 6
+hp_bar_y_offset = 10
 
 [diving]
 dive_group_size_max = 4

@@ -40,6 +40,7 @@ class PlayerBullet(arcade.Sprite):
         player_num: int = 1,
         texture: Optional[arcade.Texture] = None,
         scale: float = 1.0,
+        damage: int = 100,
     ) -> None:
         if texture is not None:
             super().__init__(texture)
@@ -50,6 +51,7 @@ class PlayerBullet(arcade.Sprite):
             )
             super().__init__(tex)
         self.scale = scale
+        self.damage = damage
         self.center_x = x
         self.center_y = y
         self.angle = angle_deg

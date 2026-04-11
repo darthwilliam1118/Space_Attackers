@@ -57,6 +57,10 @@ class DivingShip(arcade.Sprite):
         self._sprite_scale = scale
         self.center_x = source_sprite.center_x
         self.center_y = source_sprite.center_y
+        # Copy HP from formation sprite — diver carries whatever HP it had in the grid
+        self.hit_points: int = source_sprite.hit_points
+        self.max_hit_points: int = source_sprite.max_hit_points
+        self.hp_bar_timer: float = 0.0
 
         self.col: int = source_sprite.col
         self.row: int = source_sprite.row

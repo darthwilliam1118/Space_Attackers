@@ -24,6 +24,7 @@ class EnemyBullet(arcade.Sprite):
         speed: float,
         texture: Optional[arcade.Texture] = None,
         scale: float = 1.0,
+        damage: int = 20,
     ) -> None:
         if texture is not None:
             super().__init__(texture)
@@ -34,6 +35,7 @@ class EnemyBullet(arcade.Sprite):
             )
             super().__init__(tex)
         self.scale = scale
+        self.damage = damage
         self.center_x = x
         self.center_y = y
         self.angle = 180

@@ -138,6 +138,8 @@ class ShockwaveSprite(arcade.Sprite):
         vx: float = 0.0,
         vy: float = 0.0,
         texture: arcade.Texture | None = None,
+        duration: float | None = None,
+        max_scale: float | None = None,
     ) -> None:
         if texture is None:
             texture = arcade.make_circle_texture(64, arcade.color.WHITE)
@@ -148,8 +150,8 @@ class ShockwaveSprite(arcade.Sprite):
         self.center_y = y
         self._vx = vx
         self._vy = vy
-        self._duration = config.shockwave_duration
-        self._max_scale = config.shockwave_max_scale
+        self._duration = duration if duration is not None else config.shockwave_duration
+        self._max_scale = max_scale if max_scale is not None else config.shockwave_max_scale
         self._elapsed = 0.0
 
         self.scale = 0.1

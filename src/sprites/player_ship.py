@@ -74,6 +74,10 @@ class PlayerShip(arcade.Sprite):
         # Fire cooldown
         self._fire_cooldown_remaining: float = 0.0
 
+        # Hit points
+        self.hit_points: int = config.player_max_hp
+        self.max_hit_points: int = config.player_max_hp
+
         # Invincibility
         self._invincible_remaining: float = 0.0
         self._flash_timer: float = 0.0
@@ -141,7 +145,13 @@ class PlayerShip(arcade.Sprite):
             angle_deg=self._tilt_angle,
             player_num=self._player_num,
             scale=self._sprite_scale,
+            damage=self._config.player_bullet_damage,
         )
+
+    def take_damage(self, amount: int) -> bool:
+        """Reduce HP by *amount*. Returns True if HP reaches zero (player dies)."""
+        self.hit_points = max(0, self.hit_points - amount)
+        return self.hit_points <= 0
 
     def start_invincibility(self) -> None:
         """Begin invincibility timer and flash effect."""

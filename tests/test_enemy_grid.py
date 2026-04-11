@@ -305,9 +305,9 @@ class TestApplyPlayerBullet:
         bullet.center_y = enemy.center_y
         result = g.apply_player_bullet(bullet)
         assert result is not None
-        hit_x, hit_y, points = result
-        assert (hit_x, hit_y) == (expected_cx, expected_cy)
-        assert isinstance(points, int) and points > 0
+        assert (result.cx, result.cy) == (expected_cx, expected_cy)
+        assert isinstance(result.points, int) and result.points > 0
+        assert result.killed is True
 
     def test_removes_enemy_on_hit(self) -> None:
         g = _grid(enemy_cols=1, enemy_rows=1)
@@ -318,6 +318,58 @@ class TestApplyPlayerBullet:
         bullet.center_y = enemy.center_y
         g.apply_player_bullet(bullet)
         assert len(g.get_sprite_list()) == 0
+
+    def test_non_lethal_hit_enemy_survives(self) -> None:
+        """Enemy with 200 HP survives a 100-damage hit; killed=False, no points."""
+        from src.enemy_config import EnemyConfig
+
+        cfg = EnemyConfig(
+            enemy_cols_start=1, enemy_cols_max=1, enemy_rows_start=1, enemy_rows_max=1
+        )
+        g = EnemyGrid(cfg, W, H, enemy_texture=_enemy_tex(), bullet_texture=_bullet_tex())
+        g.setup(level=1)
+        enemy = list(g.get_sprite_list())[0]
+        # Manually set HP > bullet damage so the enemy survives.
+        enemy.hit_points = 200
+        enemy.max_hit_points = 200
+
+        bullet_tex = arcade.Texture.create_empty("pb3", (9, 54))
+        bullet = arcade.Sprite(bullet_tex)
+        bullet.damage = 100  # type: ignore[attr-defined]
+        bullet.center_x = enemy.center_x
+        bullet.center_y = enemy.center_y
+        result = g.apply_player_bullet(bullet)
+
+        assert result is not None
+        assert result.killed is False
+        assert result.points == 0
+        assert len(g.get_sprite_list()) == 1  # enemy still alive
+        assert enemy.hit_points == 100
+        assert enemy.hp_bar_timer > 0.0
+
+    def test_snapshot_preserves_hp(self) -> None:
+        """HP reduced by a non-lethal hit round-trips through snapshot."""
+        from src.enemy_config import EnemyConfig
+
+        cfg = EnemyConfig(
+            enemy_cols_start=1, enemy_cols_max=1, enemy_rows_start=1, enemy_rows_max=1
+        )
+        g = EnemyGrid(cfg, W, H, enemy_texture=_enemy_tex(), bullet_texture=_bullet_tex())
+        g.setup(level=1)
+        enemy = list(g.get_sprite_list())[0]
+        enemy.hit_points = 75
+        enemy.max_hit_points = 100
+
+        snap = g.to_snapshot()
+        assert snap["enemies"][0]["hit_points"] == 75
+        assert snap["enemies"][0]["max_hit_points"] == 100
+
+        g2 = EnemyGrid.from_snapshot(
+            snap, cfg, W, H, enemy_texture=_enemy_tex(), bullet_texture=_bullet_tex()
+        )
+        restored = list(g2.get_sprite_list())[0]
+        assert restored.hit_points == 75
+        assert restored.max_hit_points == 100
 
 
 # ---------------------------------------------------------------------------

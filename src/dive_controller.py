@@ -35,12 +35,14 @@ class DiveController:
         window_height: int,
         debug: bool = False,
         sprite_scale: float = 1.0,
+        hp_bar_duration: float = 1.0,
     ) -> None:
         self._config = config
         self._window_width = window_width
         self._window_height = window_height
         self._debug = debug
         self._sprite_scale = sprite_scale
+        self._hp_bar_duration = hp_bar_duration
 
         # Level-scaled (set by setup())
         self._level: int = 1
@@ -61,6 +63,8 @@ class DiveController:
 
         # Pending hit data for RunLevelView to consume: (x, y, points)
         self._pending_hits: list[tuple[float, float, int]] = []
+        # Non-lethal bullet hits (enemy survived): (x, y) for hit-ring effect
+        self._pending_non_lethal_hits: list[tuple[float, float]] = []
 
     # ------------------------------------------------------------------
     # Setup / snapshot
@@ -104,9 +108,17 @@ class DiveController:
         window_height: int,
         debug: bool = False,
         sprite_scale: float = 1.0,
+        hp_bar_duration: float = 1.0,
     ) -> "DiveController":
         """Restore DiveController from snapshot.  No airborne ships to restore."""
-        ctrl = cls(config, window_width, window_height, debug=debug, sprite_scale=sprite_scale)
+        ctrl = cls(
+            config,
+            window_width,
+            window_height,
+            debug=debug,
+            sprite_scale=sprite_scale,
+            hp_bar_duration=hp_bar_duration,
+        )
         ctrl.setup(snapshot["level"], enemy_grid=None)
         ctrl._dive_timer = snapshot["dive_timer"]
         return ctrl
@@ -141,6 +153,7 @@ class DiveController:
         """Advance timer, update active ships, handle collisions, return events."""
         events: list[GameEvent] = []
         self._pending_hits.clear()
+        self._pending_non_lethal_hits.clear()
 
         # Advance dive timer (blocked during 2P wait)
         if not self.new_dive_launches_blocked and self._dive_group_size > 0:
@@ -149,6 +162,11 @@ class DiveController:
                 player_x = player_ship.center_x if player_ship else self._window_width / 2
                 self.launch_group(enemy_grid, player_x)
                 self._dive_timer = self._dive_interval
+
+        # Tick HP bar timer on active diving ships
+        for ship in self._active_ships:
+            if ship.hp_bar_timer > 0:
+                ship.hp_bar_timer -= delta_time
 
         # Update active diving ships
         done_ships: list["DivingShip"] = []
@@ -202,19 +220,25 @@ class DiveController:
                 continue
             hits = arcade.check_for_collision_with_list(bullet, self._ship_list)
             for ship in hits:
+                bullet_damage = getattr(bullet, "damage", 100)
+                ship.hit_points -= bullet_damage
                 bullet.remove_from_sprite_lists()
-                self._pending_hits.append(
-                    (
-                        ship.center_x,
-                        ship.center_y,
-                        self._config.dive_bonus_points,
+                if ship.hit_points <= 0:
+                    self._pending_hits.append(
+                        (
+                            ship.center_x,
+                            ship.center_y,
+                            self._config.dive_bonus_points,
+                        )
                     )
-                )
-                ship.remove_from_sprite_lists()
-                if ship in self._active_ships:
-                    self._active_ships.remove(ship)
-                self._source_map.pop(id(ship), None)
-                events.append(GameEvent.ENEMY_DESTROYED)
+                    ship.remove_from_sprite_lists()
+                    if ship in self._active_ships:
+                        self._active_ships.remove(ship)
+                    self._source_map.pop(id(ship), None)
+                    events.append(GameEvent.ENEMY_DESTROYED)
+                else:
+                    ship.hp_bar_timer = self._hp_bar_duration
+                    self._pending_non_lethal_hits.append((ship.center_x, ship.center_y))
                 break  # one bullet hits one ship
 
         # Check diving ships vs player ship
@@ -310,8 +334,18 @@ class DiveController:
         """True if any ships are currently diving or returning."""
         return len(self._active_ships) > 0
 
+    def get_ship_sprite_list(self) -> arcade.SpriteList:
+        """Return the active diving ship sprite list (for HP bars and flash effects)."""
+        return self._ship_list
+
     def consume_pending_hits(self) -> list[tuple[float, float, int]]:
         """Return pending hit data (x, y, points) and clear the list."""
         hits = list(self._pending_hits)
         self._pending_hits.clear()
+        return hits
+
+    def consume_pending_non_lethal_hits(self) -> list[tuple[float, float]]:
+        """Return (x, y) positions of non-lethal bullet hits this frame and clear the list."""
+        hits = list(self._pending_non_lethal_hits)
+        self._pending_non_lethal_hits.clear()
         return hits

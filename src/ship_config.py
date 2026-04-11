@@ -16,3 +16,5 @@ class ShipConfig:
     spawn_invincible_duration: float = 2.0
     ship_zone_height_pct: float = 0.33
     explosion_frame_duration: float = 0.05
+    player_max_hp: int = 100
+    player_bullet_damage: int = 100

@@ -54,3 +54,7 @@ class EnemySprite(arcade.Sprite):
         # enemy leaves the playfield (bottom snap, and future dive recovery).
         self.home_x: float = 0.0
         self.home_y: float = 0.0
+        # Hit points — set by EnemyGrid.setup() after construction
+        self.hit_points: int = 0
+        self.max_hit_points: int = 0
+        self.hp_bar_timer: float = 0.0  # counts down; bar hidden when <= 0

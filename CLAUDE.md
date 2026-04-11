@@ -101,7 +101,7 @@ Always use the 3.x API. Key breaking changes to be aware of:
   Returns a list of Texture objects
 
 ### Text
-- arcade.draw_text() still works but arcade.Text object is preferred
+- never use arcade.draw_text(), arcade.Text object is preferred
 - arcade.Text constructor in 3.x:
   arcade.Text(text, x, y, color, font_size, font_name=...,
               anchor_x="left", anchor_y="baseline", multiline=False,

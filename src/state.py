@@ -174,10 +174,16 @@ class GameStateManager:
                     h,
                     debug=debug,
                     sprite_scale=cfg.sprite_scale if cfg else 1.0,
+                    hp_bar_duration=cfg.ui.hp_bar_duration if cfg else 1.0,
                 )
             else:
                 grid = EnemyGrid(
-                    enemy_cfg, w, h, debug=debug, sprite_scale=cfg.sprite_scale if cfg else 1.0
+                    enemy_cfg,
+                    w,
+                    h,
+                    debug=debug,
+                    sprite_scale=cfg.sprite_scale if cfg else 1.0,
+                    hp_bar_duration=cfg.ui.hp_bar_duration if cfg else 1.0,
                 )
                 grid.setup(level)
         else:
@@ -198,10 +204,16 @@ class GameStateManager:
                 h,
                 debug=debug,
                 sprite_scale=cfg.sprite_scale if cfg else 1.0,
+                hp_bar_duration=cfg.ui.hp_bar_duration if cfg else 1.0,
             )
         else:
             dive_ctrl = DiveController(
-                diving_cfg, w, h, debug=debug, sprite_scale=cfg.sprite_scale if cfg else 1.0
+                diving_cfg,
+                w,
+                h,
+                debug=debug,
+                sprite_scale=cfg.sprite_scale if cfg else 1.0,
+                hp_bar_duration=cfg.ui.hp_bar_duration if cfg else 1.0,
             )
             dive_ctrl.setup(level, enemy_grid=grid)
         self.context["dive_controller"] = dive_ctrl

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import random
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional
 
 import arcade
 
@@ -11,6 +11,18 @@ from src.enemy_config import EnemyConfig
 from src.game_event import GameEvent
 from src.sprites.enemy_bullet import EnemyBullet
 from src.sprites.enemy_sprite import ROW_MAPPING, EnemySprite
+
+if TYPE_CHECKING:
+    from src.sprites.player_ship import PlayerShip
+
+
+class BulletHitResult(NamedTuple):
+    """Returned by apply_player_bullet() to describe a collision outcome."""
+
+    cx: float
+    cy: float
+    points: int  # 0 if enemy survived
+    killed: bool
 
 
 class EnemyGrid:
@@ -30,6 +42,7 @@ class EnemyGrid:
         bullet_texture: Optional[arcade.Texture] = None,
         debug: bool = False,
         sprite_scale: float = 1.0,
+        hp_bar_duration: float = 1.0,
     ) -> None:
         self._config = config
         self._window_width = window_width
@@ -38,6 +51,7 @@ class EnemyGrid:
         self._bullet_texture = bullet_texture
         self._debug = debug
         self._sprite_scale = sprite_scale
+        self._hp_bar_duration = hp_bar_duration
 
         # Formation offsets: list of (col_offset, row_offset) per grid cell
         self._col_offsets: list[float] = []
@@ -154,6 +168,7 @@ class EnemyGrid:
                     texture=self._enemy_texture,
                     scale=self._sprite_scale,
                 )
+                self._assign_hp(sprite, ship_type)
                 sprite.center_x = self._origin_x + self._col_offsets[col]
                 sprite.center_y = self._origin_y + self._row_offsets[row]
                 sprite.home_x = sprite.center_x
@@ -172,7 +187,7 @@ class EnemyGrid:
     def update(
         self,
         delta_time: float,
-        player_ship: Optional[arcade.Sprite],
+        player_ship: Optional["PlayerShip"],
     ) -> list[GameEvent]:
         """Move grid, handle shooting, check collisions.  Returns events."""
         events: list[GameEvent] = []
@@ -187,6 +202,8 @@ class EnemyGrid:
             if enemy.bottom <= 0:
                 enemy.center_x = enemy.home_x
                 enemy.center_y = enemy.home_y
+            if enemy.hp_bar_timer > 0:
+                enemy.hp_bar_timer -= delta_time
 
         # Update enemy bullets
         for bullet in list(self._bullet_list):  # type: ignore[attr-defined]
@@ -223,6 +240,7 @@ class EnemyGrid:
                     speed=cfg.enemy_bullet_speed,
                     texture=self._bullet_texture,
                     scale=self._sprite_scale,
+                    damage=cfg.enemy_bullet_damage,
                 )
                 self._bullet_list.append(bullet)
                 active_cols.add(col)
@@ -233,8 +251,9 @@ class EnemyGrid:
             if hits:
                 for b in hits:
                     b.remove_from_sprite_lists()
-                events.append(GameEvent.PLAYER_KILLED)
-                return events
+                    if player_ship.take_damage(b.damage):
+                        events.append(GameEvent.PLAYER_KILLED)
+                        return events
 
             # Collision: enemy sprite vs player ship — remove enemy and queue explosion
             hits = arcade.check_for_collision_with_list(player_ship, self._sprite_list)
@@ -253,11 +272,12 @@ class EnemyGrid:
     # Player bullet hit
     # ------------------------------------------------------------------
 
-    def apply_player_bullet(self, bullet: arcade.Sprite) -> Optional[tuple[float, float, int]]:
+    def apply_player_bullet(self, bullet: arcade.Sprite) -> Optional[BulletHitResult]:
         """Check *bullet* against the grid.
 
-        Returns (cx, cy, points) on a hit, or None on a miss.
-        Points are row-based (top row highest) plus a per-5-level band bonus.
+        Returns a BulletHitResult on any collision, or None on a miss.
+        When killed=True the enemy was destroyed and points > 0.
+        When killed=False the enemy survived; HP bar and flash timers are set.
         Caller is responsible for removing the bullet.
         """
         hits = arcade.check_for_collision_with_list(bullet, self._sprite_list)
@@ -268,11 +288,17 @@ class EnemyGrid:
         row_pts = (self._rows - enemy.row) * 10
         band_bonus = ((self._level - 1) // 5) * 10
         points = row_pts + band_bonus
-        enemy.remove_from_sprite_lists()
-        self._enemies_destroyed += 1
-        self.recalculate_speed()
-        self._update_col_cache()
-        return cx, cy, points
+        bullet_damage = getattr(bullet, "damage", 100)
+        enemy.hit_points -= bullet_damage
+        if enemy.hit_points <= 0:
+            enemy.remove_from_sprite_lists()
+            self._enemies_destroyed += 1
+            self.recalculate_speed()
+            self._update_col_cache()
+            return BulletHitResult(cx, cy, points, killed=True)
+        else:
+            enemy.hp_bar_timer = self._hp_bar_duration
+            return BulletHitResult(cx, cy, 0, killed=False)
 
     # ------------------------------------------------------------------
     # Queries
@@ -435,6 +461,8 @@ class EnemyGrid:
                     "row": sprite.row,
                     "color": sprite.color_name,
                     "ship_type": sprite.ship_type,
+                    "hit_points": sprite.hit_points,
+                    "max_hit_points": sprite.max_hit_points,
                 }
             )
         projectiles = [
@@ -470,6 +498,7 @@ class EnemyGrid:
         bullet_texture: Optional[arcade.Texture] = None,
         debug: bool = False,
         sprite_scale: float = 1.0,
+        hp_bar_duration: float = 1.0,
     ) -> "EnemyGrid":
         """Restore an EnemyGrid from a saved snapshot.
 
@@ -484,6 +513,7 @@ class EnemyGrid:
             bullet_texture,
             debug=debug,
             sprite_scale=sprite_scale,
+            hp_bar_duration=hp_bar_duration,
         )
         grid._level = int(snapshot.get("level", 1))
         level = grid._level
@@ -529,6 +559,10 @@ class EnemyGrid:
                 texture=enemy_texture,
                 scale=grid._sprite_scale,
             )
+            # Restore HP from snapshot; fall back to freshly-computed level-scaled HP
+            grid._assign_hp(sprite, ship_type)
+            sprite.hit_points = int(edata.get("hit_points", sprite.hit_points))
+            sprite.max_hit_points = int(edata.get("max_hit_points", sprite.max_hit_points))
             pos = edata["pos"]
             sprite.center_x = float(pos[0])
             sprite.center_y = float(pos[1])
@@ -556,6 +590,7 @@ class EnemyGrid:
                 speed=config.enemy_bullet_speed,
                 texture=bullet_texture,
                 scale=grid._sprite_scale,
+                damage=config.enemy_bullet_damage,
             )
             grid._bullet_list.append(bullet)
 
@@ -564,6 +599,14 @@ class EnemyGrid:
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    def _assign_hp(self, sprite: EnemySprite, ship_type: int) -> None:
+        """Set hit_points and max_hit_points on *sprite* based on type and level."""
+        cfg = self._config
+        base_hp = cfg.enemy_hp.get(ship_type, 100)
+        scaled_hp = int(base_hp * (cfg.enemy_hp_level_factor ** (self._level - 1)))
+        sprite.hit_points = scaled_hp
+        sprite.max_hit_points = scaled_hp
 
     def _check_vertical_boundary(self) -> None:
         """Flip drop direction at bottom margin or spawn Y ceiling.
