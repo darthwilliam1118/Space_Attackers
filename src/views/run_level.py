@@ -212,6 +212,10 @@ class RunLevelView(arcade.View):
         self._ship.apply_movement(self._keys_held, delta_time)
         self._ship.update(delta_time)
 
+        # Auto-fire while space is held (rate-limited by ship's fire_cooldown)
+        if arcade.key.SPACE in self._keys_held and not self._dying:
+            self._fire()
+
         # Update HUD
         if self._hud is not None:
             ctx = self._manager.context

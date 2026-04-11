@@ -13,14 +13,17 @@ _TRACKS: dict[str, str] = {
     "level_1": "assets/music/Juhani Junkala [Retro Game Music Pack] Level 1.ogg",
     "level_2": "assets/music/Juhani Junkala [Retro Game Music Pack] Level 2.ogg",
     "level_3": "assets/music/Juhani Junkala [Retro Game Music Pack] Level 3.ogg",
+    "level_4": "assets/music/awake10_megawall.mp3",
+    "level_5": "assets/music/Cyberpunk Moonlight Sonata.mp3",
+    "level_6": "assets/music/fight.ogg",
 }
 
 # Number of distinct level tracks available
-LEVEL_TRACK_COUNT = 3
+LEVEL_TRACK_COUNT = 6
 
 
 def track_key_for_level(level: int) -> str:
-    """Return the music track key for *level*, cycling through the 3 level tracks."""
+    """Return the music track key for *level*, cycling through the 6 level tracks."""
     idx = ((level - 1) % LEVEL_TRACK_COUNT) + 1
     return f"level_{idx}"
 
