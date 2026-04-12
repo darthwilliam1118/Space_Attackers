@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import Optional
 
@@ -14,6 +14,85 @@ from src.enemy_config import EnemyConfig
 from src.particles_config import ParticlesConfig
 from src.ship_config import ShipConfig
 from src.ui_config import UIConfig
+
+
+def _is_numeric(s: str) -> bool:
+    """Return True if *s* looks like a number (handles negative values like -1)."""
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
+_SUB_CONFIG_FIELDS = frozenset({"ship", "enemies", "background", "particles", "ui", "diving"})
+
+
+def _apply_argv_overrides(cfg: "GameConfig") -> None:
+    """Apply -key value overrides from sys.argv to *cfg* in place.
+
+    Scans sys.argv for -key value pairs where key matches any field name in
+    GameConfig or its nested sub-configs. Matching overrides are applied with
+    correct type coercion. Unrecognised arguments print a warning and are skipped.
+    The TOML file is never modified.
+    """
+    # Build flat registry: field_name -> (owner_obj, attr_name)
+    registry: dict[str, tuple[object, str]] = {}
+
+    for f in fields(cfg):
+        if f.name not in _SUB_CONFIG_FIELDS:
+            registry[f.name] = (cfg, f.name)
+
+    for sub in (cfg.ship, cfg.enemies, cfg.background, cfg.particles, cfg.ui, cfg.diving):
+        for f in fields(sub):
+            existing = getattr(sub, f.name)
+            if not isinstance(existing, dict):  # skip enemy_hp (dict[int, int])
+                registry[f.name] = (sub, f.name)
+
+    argv = sys.argv[1:]
+    i = 0
+    while i < len(argv):
+        token = argv[i]
+        if not token.startswith("-"):
+            i += 1
+            continue
+
+        key = token.lstrip("-")
+        if key not in registry:
+            print(f"Unknown argument {token}, ignored")
+            i += 1
+            continue
+
+        owner, attr = registry[key]
+        existing = getattr(owner, attr)
+
+        # Peek at the next token: is it a value or another flag?
+        next_token = argv[i + 1] if i + 1 < len(argv) else None
+        next_is_value = next_token is not None and (
+            not next_token.startswith("-") or _is_numeric(next_token)
+        )
+
+        if isinstance(existing, bool) and not next_is_value:
+            # Boolean flag with no explicit value: -debug alone means True
+            setattr(owner, attr, True)
+        elif next_is_value:
+            assert next_token is not None
+            i += 1
+            try:
+                if isinstance(existing, bool):
+                    setattr(owner, attr, next_token.lower() not in ("false", "0", "no", "off"))
+                elif isinstance(existing, int):
+                    setattr(owner, attr, int(next_token))
+                elif isinstance(existing, float):
+                    setattr(owner, attr, float(next_token))
+                else:
+                    setattr(owner, attr, next_token)
+            except ValueError:
+                print(f"Invalid value for {token}: {next_token!r}, ignored")
+        else:
+            print(f"Missing value for {token}, ignored")
+
+        i += 1
 
 
 def _config_path() -> Path:
@@ -72,7 +151,9 @@ class GameConfig:
             with open(path, "rb") as fh:
                 data = tomllib.load(fh)
         except Exception:
-            return cls()
+            result = cls()
+            _apply_argv_overrides(result)
+            return result
 
         game = data.get("game", {})
         ship = data.get("ship", {})
@@ -223,7 +304,7 @@ class GameConfig:
                 dc_raw.get("dive_return_speed", DivingConfig.dive_return_speed)
             ),
         )
-        return cls(
+        result = cls(
             starting_level=int(game.get("starting_level", cls.starting_level)),
             num_lives=int(game.get("num_lives", cls.num_lives)),
             spawn_safe_radius=int(game.get("spawn_safe_radius", cls.spawn_safe_radius)),
@@ -240,6 +321,8 @@ class GameConfig:
             ui=uc,
             diving=dc,
         )
+        _apply_argv_overrides(result)
+        return result
 
     def save(self, path: Optional[Path] = None) -> None:
         """Persist current values back to *path* as TOML."""

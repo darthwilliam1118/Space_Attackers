@@ -64,7 +64,9 @@ class RunLevelView(arcade.View):
 
         self._hud: Optional[HUD] = None
         self._hp_label: Optional[arcade.Text] = None
+        self._paused_text: Optional[arcade.Text] = None
         self._debug_text: Optional[arcade.Text] = None
+        self._god_mode_text: Optional[arcade.Text] = None
         self._debug: bool = False
 
         self._snd_enemy_killed: Optional[arcade.Sound] = None
@@ -134,14 +136,34 @@ class RunLevelView(arcade.View):
         self.window.music.play(track_key_for_level(level))  # type: ignore[attr-defined]
         num_players = len(players)
         self._hud = HUD(self.window.width, self.window.height, num_players)
+        self._paused_text = arcade.Text(
+            "PAUSED",
+            self.window.width / 2,
+            self.window.height / 2,
+            arcade.color.WHITE,
+            font_size=48,
+            font_name=FONT_THIN,
+            anchor_x="center",
+            anchor_y="center",
+        )
         if self._debug:
             self._debug_text = centered_text(
-                "Shift+E = Clear enemies  |  Shift+D = Force dive",
+                "Shift+E = Clear  |  Shift+D = Dive  |  Shift+G = God Mode  |  Shift+K = Kill",
                 self.window.width,
                 self.window.height - 10,
                 font_size=11,
                 color=(180, 180, 180, 255),
                 font_name=FONT_THIN,
+            )
+            self._god_mode_text = arcade.Text(
+                "GOD MODE ON",
+                self.window.width / 2,
+                self.window.height - 46,
+                (255, 220, 0, 255),
+                font_size=13,
+                font_name=FONT_THIN,
+                anchor_x="center",
+                anchor_y="center",
             )
 
     def on_update(self, delta_time: float) -> None:
@@ -367,20 +389,16 @@ class RunLevelView(arcade.View):
 
         if self._debug and self._debug_text is not None:
             self._debug_text.draw()
+        if self._debug and self._god_mode_text is not None:
+            cfg = self._manager.context.get("config")
+            if cfg is not None and cfg.god_mode:
+                self._god_mode_text.draw()
 
         if self._paused:
             w, h = self.window.width, self.window.height
             arcade.draw_lrbt_rectangle_filled(0, w, 0, h, (0, 0, 0, 120))
-            arcade.draw_text(
-                "PAUSED",
-                w / 2,
-                h / 2,
-                arcade.color.WHITE,
-                font_size=48,
-                font_name=FONT_THIN,
-                anchor_x="center",
-                anchor_y="center",
-            )
+            if self._paused_text is not None:
+                self._paused_text.draw()
 
     def on_key_press(self, key: int, modifiers: int) -> None:
         from src.state import GameState
@@ -397,6 +415,22 @@ class RunLevelView(arcade.View):
             and self._ship is not None
         ):
             self._level.debug_force_dive(self._ship.center_x)
+            return
+
+        if self._debug and key == arcade.key.G and (modifiers & arcade.key.MOD_SHIFT):
+            cfg = self._manager.context.get("config")
+            if cfg is not None:
+                cfg.god_mode = not cfg.god_mode
+            return
+
+        if (
+            self._debug
+            and key == arcade.key.K
+            and (modifiers & arcade.key.MOD_SHIFT)
+            and not self._dying
+            and self._ship is not None
+        ):
+            self._trigger_death()
             return
 
         if key == arcade.key.P:
