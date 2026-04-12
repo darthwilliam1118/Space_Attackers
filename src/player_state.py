@@ -14,3 +14,4 @@ class PlayerState:
     current_level: int = 1
     level_snapshot: Optional[dict] = field(default=None)  # None = fresh level
     is_alive: bool = True
+    current_hp: Optional[int] = None  # None = restore to max on next spawn

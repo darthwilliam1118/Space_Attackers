@@ -11,6 +11,8 @@ Need to rack and stack
 - [x] Volume level for music and sounds (minor)
 - [x] UI selection for start level for each game (minor)
 - [x] Scale sprites down to make screen virtually larger
+- [ ] With auto-fire, need a gun overheat and cooldown timer
+- [ ] player ship disappears under health bar, change z order or move health bar
 ## Someday Maybe
 - [ ] 2 player simultaneous mode, single keyboard (major)
 - [ ] 2 player LAN mode, 2 computers

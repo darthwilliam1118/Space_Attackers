@@ -38,6 +38,7 @@ class PlayerKilledView(arcade.View):
 
         player = players[idx]
         player.lives -= 1
+        player.current_hp = None  # new life restores HP to max
 
         other_alive = any(p.is_alive for p in players if p.player_num != player.player_num)
 

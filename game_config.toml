@@ -1,5 +1,5 @@
 [game]
-starting_level = 4
+starting_level = 1
 num_lives = 3
 spawn_safe_radius = 80
 music_volume = 6
