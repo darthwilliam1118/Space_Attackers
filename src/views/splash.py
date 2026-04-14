@@ -45,7 +45,6 @@ class SplashView(arcade.View):
             font_size=64,
             color=arcade.color.YELLOW,
             font_name=FONT_MAIN,
-            bold=True,
         )
         self._prompt_text = centered_text(
             self.PROMPT,

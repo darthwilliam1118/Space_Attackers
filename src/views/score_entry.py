@@ -139,7 +139,6 @@ class ScoreEntryView(arcade.View):
             font_size=36,
             color=arcade.color.GOLD,
             font_name=FONT_MAIN,
-            bold=True,
         )
 
         top_y = h - 110

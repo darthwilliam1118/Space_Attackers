@@ -225,7 +225,6 @@ class MainMenuView(arcade.View):
             font_size=42,
             color=arcade.color.YELLOW,
             font_name=FONT_MAIN,
-            bold=True,
         )
         self._page_indicator = centered_text(
             self._page_label(),

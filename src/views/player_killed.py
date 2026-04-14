@@ -70,7 +70,6 @@ class PlayerKilledView(arcade.View):
             font_size=42,
             color=arcade.color.RED,
             font_name=FONT_MAIN,
-            bold=True,
         )
 
         lives_str = ""

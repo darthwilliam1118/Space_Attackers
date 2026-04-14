@@ -59,7 +59,6 @@ class GameConfigView(arcade.View):
             font_size=40,
             color=arcade.color.CYAN,
             font_name=FONT_MAIN,
-            bold=True,
         )
         top_y = h // 2 + (len(_FIELDS) // 2) * 46
         self._field_texts = [

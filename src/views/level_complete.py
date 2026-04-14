@@ -49,7 +49,6 @@ class LevelCompleteView(arcade.View):
             font_size=48,
             color=arcade.color.GREEN,
             font_name=FONT_MAIN,
-            bold=True,
         )
 
         players = self._manager.context.get("players", [])

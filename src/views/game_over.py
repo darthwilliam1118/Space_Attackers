@@ -44,7 +44,6 @@ class GameOverView(arcade.View):
             font_size=48,
             color=arcade.color.RED,
             font_name=FONT_MAIN,
-            bold=True,
         )
 
         players = self._manager.context.get("players", [])
