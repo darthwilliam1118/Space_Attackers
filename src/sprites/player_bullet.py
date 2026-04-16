@@ -6,8 +6,7 @@ import math
 from typing import Optional
 
 import arcade
-
-from src.paths import resource_path
+from agf.paths import resource_path
 
 # Sprite paths indexed by player_num (1-based).
 _BULLET_PATHS: dict[int, str] = {

@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 import arcade
-
-from src.paths import resource_path
+from agf.paths import resource_path
 
 _BULLET_PATH = "assets/images/PNG/Lasers/laserRed01.png"
 

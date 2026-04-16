@@ -1,9 +1,9 @@
 import arcade
+from agf.paths import resource_path
 
 from src.background import ProceduralStarField, StaticBackground
 from src.game_config import GameConfig
 from src.music import MusicPlayer
-from src.paths import resource_path
 from src.state import GameState, GameStateManager
 
 SCREEN_TITLE = "Space Attackers"

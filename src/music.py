@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 import arcade
-
-from src.paths import resource_path
+from agf.paths import resource_path
 
 _TRACKS: dict[str, str] = {
     "ending": "assets/music/Juhani Junkala [Retro Game Music Pack] Ending.ogg",

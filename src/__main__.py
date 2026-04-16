@@ -1,6 +1,10 @@
 import sys
+from pathlib import Path
 
 import pyglet
+from agf.paths import set_project_root
+
+set_project_root(Path(__file__).resolve().parent.parent)
 
 if sys.platform == "win32":
     pyglet.options["win32_gdi_font"] = (

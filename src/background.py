@@ -6,8 +6,7 @@ import random
 from typing import Any, Optional
 
 import arcade
-
-from src.paths import resource_path
+from agf.paths import resource_path
 
 
 class StaticBackground:

@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 import arcade
-
-from src.paths import resource_path
+from agf.paths import resource_path
 
 # Row index → (color, ship_type).  Cycles via row % 5.
 ROW_MAPPING: list[tuple[str, int]] = [

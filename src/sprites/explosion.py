@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 import arcade
-
-from src.paths import resource_path
+from agf.paths import resource_path
 
 _SHEET_PATH = "assets/images/exp2_0.png"
 _FRAME_SIZE = 64

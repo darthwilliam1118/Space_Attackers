@@ -6,8 +6,8 @@ import math
 from typing import Optional
 
 import arcade
+from agf.paths import resource_path
 
-from src.paths import resource_path
 from src.ship_config import ShipConfig
 from src.sprites.explosion import ExplosionSprite
 from src.sprites.player_bullet import PlayerBullet

@@ -9,10 +9,11 @@ import arcade
 if TYPE_CHECKING:
     from src.state import GameStateManager
 
+from agf.paths import resource_path
+
 from src.game_event import GameEvent
 from src.levels.base_level import BaseLevel
 from src.music import track_key_for_level
-from src.paths import resource_path
 from src.ship_config import ShipConfig
 from src.sprites.explosion import ExplosionSprite
 from src.sprites.particles import ParticleEmitter, ShockwaveSprite
