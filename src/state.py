@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Optional
+
+from agf.state import BaseGameStateManager
 
 if TYPE_CHECKING:
     import arcade
-
-log = logging.getLogger(__name__)
 
 
 class GameState(Enum):
@@ -29,33 +28,20 @@ class GameState(Enum):
     EXIT = auto()
 
 
-class GameStateManager:
+class GameStateManager(BaseGameStateManager):
     """Owns the current GameState and drives Arcade view swaps.
 
     No rendering happens here — only state bookkeeping and view swaps.
     """
 
     def __init__(self, window: "arcade.Window") -> None:
-        self.window = window
-        self.state: GameState = GameState.SPLASH
-        self.context: dict[str, Any] = {}
-
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
-    def transition(self, new_state: GameState, **context: Any) -> None:
-        """Move to *new_state*, merging any *context* into the existing context."""
-        log.debug("State: %s → %s  ctx=%s", self.state.name, new_state.name, context)
-        self.state = new_state
-        self.context.update(context)
-        self._enter_state(new_state)
+        super().__init__(window, GameState.SPLASH)
 
     # ------------------------------------------------------------------
     # Private — one handler per state
     # ------------------------------------------------------------------
 
-    def _enter_state(self, state: GameState) -> None:
+    def _enter_state(self, state: Enum) -> None:
         # Import views here to keep arcade out of the module-level import
         # (tests that import GameState/GameStateManager won't trigger arcade).
         from src.views.game_config_view import GameConfigView
