@@ -153,24 +153,24 @@ class TestHUD2P:
 
 class TestCenteredText:
     def test_anchor_x_is_center(self) -> None:
-        with patch("src.ui.text_utils.arcade.Text") as MockText:
-            from src.ui.text_utils import centered_text
+        with patch("agf.ui.text_utils.arcade.Text") as MockText:
+            from agf.ui.text_utils import centered_text
 
             centered_text("hello", 800, 300)
             _, kwargs = MockText.call_args
             assert kwargs.get("anchor_x") == "center"
 
     def test_x_is_half_window_width(self) -> None:
-        with patch("src.ui.text_utils.arcade.Text") as MockText:
-            from src.ui.text_utils import centered_text
+        with patch("agf.ui.text_utils.arcade.Text") as MockText:
+            from agf.ui.text_utils import centered_text
 
             centered_text("hello", 800, 300)
             _, kwargs = MockText.call_args
             assert kwargs.get("x") == 400.0
 
     def test_text_content_passed_through(self) -> None:
-        with patch("src.ui.text_utils.arcade.Text") as MockText:
-            from src.ui.text_utils import centered_text
+        with patch("agf.ui.text_utils.arcade.Text") as MockText:
+            from agf.ui.text_utils import centered_text
 
             centered_text("SPACE ATTACKERS", 800, 300)
             _, kwargs = MockText.call_args

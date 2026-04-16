@@ -10,8 +10,7 @@ from typing import Any, Callable, Optional
 
 import arcade
 from agf.player_state import PlayerState
-
-from src.ui.text_utils import FONT_MAIN
+from agf.ui.text_utils import FONT_MAIN
 
 _WHITE: tuple[int, int, int, int] = (255, 255, 255, 255)
 _MUTED: tuple[int, int, int, int] = (128, 128, 128, 255)

@@ -12,8 +12,7 @@ if TYPE_CHECKING:
     from src.state import GameStateManager
 
 from agf.high_scores import HighScoreTable, scores_path
-
-from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text, measure_text_width
+from agf.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text, measure_text_width
 
 _PAGES = ["LEADERBOARD", "INSTRUCTIONS"]
 _CYCLE_INTERVAL = 15.0  # seconds per page

@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 from agf.music import track_key_for_level
 from agf.paths import resource_path
+from agf.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
 
 from src.game_event import GameEvent
 from src.levels.base_level import BaseLevel
@@ -20,7 +21,6 @@ from src.sprites.particles import ParticleEmitter, ShockwaveSprite
 from src.sprites.player_ship import PlayerShip
 from src.ui.hud import HUD
 from src.ui.score_popup import ScorePopup
-from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
 from src.ui_config import UIConfig
 
 _SND_ENEMY_KILLED = "assets/sounds/explosionCrunch_000.ogg"

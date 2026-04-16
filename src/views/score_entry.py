@@ -10,8 +10,7 @@ if TYPE_CHECKING:
     from src.state import GameStateManager
 
 from agf.high_scores import HighScoreTable, scores_path
-
-from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text, measure_text_width
+from agf.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text, measure_text_width
 
 _DONE_DURATION = 3.0
 _CURSOR_BLINK = 0.5  # seconds per half-cycle

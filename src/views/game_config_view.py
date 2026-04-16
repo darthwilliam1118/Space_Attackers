@@ -9,7 +9,7 @@ import arcade
 if TYPE_CHECKING:
     from src.state import GameStateManager
 
-from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
+from agf.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
 
 _FIELDS = ["starting_level", "num_lives", "spawn_safe_radius", "music_volume", "effects_volume"]
 _FIELD_LABELS = {

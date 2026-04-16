@@ -10,7 +10,7 @@ import arcade
 if TYPE_CHECKING:
     from src.state import GameStateManager
 
-from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
+from agf.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
 
 
 class SplashView(arcade.View):
