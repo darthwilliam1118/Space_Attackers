@@ -12,12 +12,12 @@ if TYPE_CHECKING:
 from agf.levels.base_level import BaseLevel
 from agf.music import track_key_for_level
 from agf.paths import resource_path
+from agf.sprites.explosion import ExplosionSprite
 from agf.ui.score_popup import ScorePopup
 from agf.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
 
 from src.game_event import GameEvent
 from src.ship_config import ShipConfig
-from src.sprites.explosion import ExplosionSprite
 from src.sprites.particles import ParticleEmitter, ShockwaveSprite
 from src.sprites.player_ship import PlayerShip
 from src.ui.hud import HUD

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import arcade
 import pytest
+from agf.sprites.explosion import ExplosionSprite
 
 from src.ship_config import ShipConfig
-from src.sprites.explosion import ExplosionSprite
 from src.sprites.player_ship import PlayerShip
 
 W, H = 800, 600
@@ -225,7 +225,7 @@ class TestKill:
         # Prevent disk/display access inside ExplosionSprite by injecting frames.
         dummy_frames = [arcade.Texture.create_empty(f"ex{i}", (64, 64)) for i in range(4)]
         monkeypatch.setattr(
-            "src.sprites.explosion.ExplosionSprite._load_frames",
+            "agf.sprites.explosion.ExplosionSprite._load_frames",
             staticmethod(lambda: dummy_frames),
         )
         s = _ship()
