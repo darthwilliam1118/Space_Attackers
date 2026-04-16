@@ -10,6 +10,7 @@ from typing import Any, Callable, Optional
 
 import arcade
 from agf.player_state import PlayerState
+from agf.ui.hud_base import HUDBase
 from agf.ui.text_utils import FONT_MAIN
 
 _WHITE: tuple[int, int, int, int] = (255, 255, 255, 255)
@@ -21,7 +22,7 @@ def _default_factory(**kwargs: Any) -> arcade.Text:
     return arcade.Text(**kwargs)
 
 
-class HUD:
+class HUD(HUDBase):
     """Renders score, level, and lives for 1- or 2-player mode.
 
     Pass *_text_factory* to inject a fake text constructor in tests.
@@ -34,6 +35,7 @@ class HUD:
         num_players: int,
         _text_factory: Optional[Callable[..., Any]] = None,
     ) -> None:
+        super().__init__(window_width, window_height)
         factory = _text_factory if _text_factory is not None else _default_factory
         self._num_players = num_players
         y_top = window_height - 24
@@ -191,8 +193,3 @@ class HUD:
                 self._last_level = level
 
             self._last_active = active_num
-
-    def draw(self) -> None:
-        """Draw all HUD text objects."""
-        for t in self._texts:
-            t.draw()
