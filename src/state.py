@@ -137,9 +137,10 @@ class GameStateManager:
         self.transition(GameState.START_LEVEL)
 
     def _handle_start_level(self) -> None:
+        from agf.spawn_safety import apply_spawn_safety
+
         from src.levels.level_factory import create_level
         from src.ship_config import ShipConfig
-        from src.spawn_safety import apply_spawn_safety
 
         players: list = self.context.get("players", [])
         idx: int = self.context.get("active_player_index", 0)
