@@ -8,7 +8,8 @@ from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import Optional
 
-from src.background_config import BackgroundConfig
+from agf.background import BackgroundConfig
+
 from src.diving_config import DivingConfig
 from src.enemy_config import EnemyConfig
 from src.particles_config import ParticlesConfig
