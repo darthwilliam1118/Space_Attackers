@@ -9,7 +9,8 @@ import arcade
 if TYPE_CHECKING:
     from src.state import GameStateManager
 
-from src.high_scores import HighScoreTable, scores_path
+from agf.high_scores import HighScoreTable, scores_path
+
 from src.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text, measure_text_width
 
 _DONE_DURATION = 3.0
