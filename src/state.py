@@ -118,8 +118,9 @@ class GameStateManager:
     # ------------------------------------------------------------------
 
     def _handle_game_init(self) -> None:
+        from agf.player_state import PlayerState
+
         from src.game_config import GameConfig
-        from src.player_state import PlayerState
 
         cfg: GameConfig = self.context.get("config") or GameConfig.load()
         num_players: int = self.context.get("num_players", 1)

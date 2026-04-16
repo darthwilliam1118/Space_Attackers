@@ -9,8 +9,8 @@ from __future__ import annotations
 from typing import Any, Callable, Optional
 
 import arcade
+from agf.player_state import PlayerState
 
-from src.player_state import PlayerState
 from src.ui.text_utils import FONT_MAIN
 
 _WHITE: tuple[int, int, int, int] = (255, 255, 255, 255)

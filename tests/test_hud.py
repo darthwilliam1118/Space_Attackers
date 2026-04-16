@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from src.player_state import PlayerState
+from agf.player_state import PlayerState
+
 from src.ui.hud import _MUTED, _WHITE, HUD
 
 # ---------------------------------------------------------------------------
