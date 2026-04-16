@@ -1,14 +1,14 @@
-"""GameConfig — loads and saves game_config.toml."""
+"""GameConfig - loads and saves game_config.toml."""
 
 from __future__ import annotations
 
-import sys
 import tomllib
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
 from agf.background import BackgroundConfig
+from agf.config import BaseGameConfig, apply_argv_overrides, config_path
 
 from src.diving_config import DivingConfig
 from src.enemy_config import EnemyConfig
@@ -16,128 +16,24 @@ from src.particles_config import ParticlesConfig
 from src.ship_config import ShipConfig
 from src.ui_config import UIConfig
 
-
-def _is_numeric(s: str) -> bool:
-    """Return True if *s* looks like a number (handles negative values like -1)."""
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
-
-
-_SUB_CONFIG_FIELDS = frozenset({"ship", "enemies", "background", "particles", "ui", "diving"})
-
-
-def _apply_argv_overrides(cfg: "GameConfig") -> None:
-    """Apply -key value overrides from sys.argv to *cfg* in place.
-
-    Scans sys.argv for -key value pairs where key matches any field name in
-    GameConfig or its nested sub-configs. Matching overrides are applied with
-    correct type coercion. Unrecognised arguments print a warning and are skipped.
-    The TOML file is never modified.
-    """
-    # Build flat registry: field_name -> (owner_obj, attr_name)
-    registry: dict[str, tuple[object, str]] = {}
-
-    for f in fields(cfg):
-        if f.name not in _SUB_CONFIG_FIELDS:
-            registry[f.name] = (cfg, f.name)
-
-    for sub in (cfg.ship, cfg.enemies, cfg.background, cfg.particles, cfg.ui, cfg.diving):
-        for f in fields(sub):
-            existing = getattr(sub, f.name)
-            if not isinstance(existing, dict):  # skip enemy_hp (dict[int, int])
-                registry[f.name] = (sub, f.name)
-
-    argv = sys.argv[1:]
-    i = 0
-    while i < len(argv):
-        token = argv[i]
-        if not token.startswith("-"):
-            i += 1
-            continue
-
-        key = token.lstrip("-")
-        if key not in registry:
-            print(f"Unknown argument {token}, ignored")
-            i += 1
-            continue
-
-        owner, attr = registry[key]
-        existing = getattr(owner, attr)
-
-        # Peek at the next token: is it a value or another flag?
-        next_token = argv[i + 1] if i + 1 < len(argv) else None
-        next_is_value = next_token is not None and (
-            not next_token.startswith("-") or _is_numeric(next_token)
-        )
-
-        if isinstance(existing, bool) and not next_is_value:
-            # Boolean flag with no explicit value: -debug alone means True
-            setattr(owner, attr, True)
-        elif next_is_value:
-            assert next_token is not None
-            i += 1
-            try:
-                if isinstance(existing, bool):
-                    setattr(owner, attr, next_token.lower() not in ("false", "0", "no", "off"))
-                elif isinstance(existing, int):
-                    setattr(owner, attr, int(next_token))
-                elif isinstance(existing, float):
-                    setattr(owner, attr, float(next_token))
-                else:
-                    setattr(owner, attr, next_token)
-            except ValueError:
-                print(f"Invalid value for {token}: {next_token!r}, ignored")
-        else:
-            print(f"Missing value for {token}, ignored")
-
-        i += 1
+# Re-exported so existing tests importing ``_apply_argv_overrides`` keep working.
+_apply_argv_overrides = apply_argv_overrides
 
 
 def _config_path() -> Path:
-    """Return the path to game_config.toml.
-
-    When frozen by PyInstaller, look next to the .exe so users can edit it.
-    In dev, look in the project root (two levels above src/).
-    """
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent / "game_config.toml"
-    return Path(__file__).parent.parent / "game_config.toml"
+    """Return the path to game_config.toml for Space Attackers."""
+    return config_path(Path(__file__).parent.parent)
 
 
 @dataclass
-class GameConfig:
-    starting_level: int = 1
-    num_lives: int = 3
+class GameConfig(BaseGameConfig):
     spawn_safe_radius: int = 80
-    music_volume: int = 80  # 0-100
-    effects_volume: int = 80  # 0-100
-    debug: bool = False
-    god_mode: bool = False
-    max_window_height: int = 1024  # height in px; width = height * 0.75 (4:3)
-    sprite_scale: float = 1.0
-    ship: ShipConfig = None  # type: ignore[assignment]
-    enemies: EnemyConfig = None  # type: ignore[assignment]
-    background: BackgroundConfig = None  # type: ignore[assignment]
-    particles: ParticlesConfig = None  # type: ignore[assignment]
-    ui: UIConfig = None  # type: ignore[assignment]
-    diving: DivingConfig = None  # type: ignore[assignment]
-
-    def __post_init__(self) -> None:
-        if self.ship is None:
-            self.ship = ShipConfig()
-        if self.enemies is None:
-            self.enemies = EnemyConfig()
-        if self.background is None:
-            self.background = BackgroundConfig()
-        if self.particles is None:
-            self.particles = ParticlesConfig()
-        if self.ui is None:
-            self.ui = UIConfig()
-        if self.diving is None:
-            self.diving = DivingConfig()
+    ship: ShipConfig = field(default_factory=ShipConfig)
+    enemies: EnemyConfig = field(default_factory=EnemyConfig)
+    background: BackgroundConfig = field(default_factory=BackgroundConfig)
+    particles: ParticlesConfig = field(default_factory=ParticlesConfig)
+    ui: UIConfig = field(default_factory=UIConfig)
+    diving: DivingConfig = field(default_factory=DivingConfig)
 
     @classmethod
     def load(cls, path: Optional[Path] = None) -> "GameConfig":
@@ -153,7 +49,7 @@ class GameConfig:
                 data = tomllib.load(fh)
         except Exception:
             result = cls()
-            _apply_argv_overrides(result)
+            apply_argv_overrides(result)
             return result
 
         game = data.get("game", {})
@@ -322,7 +218,7 @@ class GameConfig:
             ui=uc,
             diving=dc,
         )
-        _apply_argv_overrides(result)
+        apply_argv_overrides(result)
         return result
 
     def save(self, path: Optional[Path] = None) -> None:
