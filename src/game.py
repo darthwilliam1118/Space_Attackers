@@ -1,8 +1,8 @@
 import arcade
+from agf.background import ProceduralStarField, StaticBackground
 from agf.music import MusicPlayer
 from agf.paths import resource_path
 
-from src.background import ProceduralStarField, StaticBackground
 from src.game_config import GameConfig
 from src.state import GameState, GameStateManager
 
