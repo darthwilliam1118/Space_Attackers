@@ -1,5 +1,16 @@
 # Space Attackers - Claude Code Guidelines
 
+## Framework dependency
+Shared infrastructure is in the agf package (arcade-game-framework repo).
+Import framework classes from agf:
+  from agf.paths import resource_path
+  from agf.high_scores import HighScoreTable
+  from agf.background import StaticBackground, ProceduralStarField
+  etc.
+
+Do NOT re-implement anything already in agf. Check agf first.
+Game-specific classes (ship, enemies, levels, power-ups) stay in src/.
+
 ## Architecture
 - Keep game logic strictly separated from rendering
 - Classes like Ship, Alien, Bullet contain pure logic only (position, 
@@ -150,7 +161,13 @@ Always use the 3.x API. Key breaking changes to be aware of:
 - Font name in arcade.Text is the font's internal name, not the filename
 - KenVector Future and KenVector Future Thin are the target fonts for all game UI
   and are located in assets/fonts
-
+- Never use bold=True on arcade.Text unless the TTF file actually contains
+  a bold variant — on Linux Pyglet falls back to system font instead of
+  synthesizing bold, causing wrong font to render
+- KenVector Future2 and KenVector Future2 Thin have no bold variants —
+  do not use bold=True with these fonts
+- win32_gdi_font pyglet option is Windows-only — guard with
+  if sys.platform == "win32": before setting it
 ## Arcade Performance Gotchas
 - ShapeElementList is for STATIC geometry only — never use it for objects
   that move every frame. It requires a full GPU buffer rebuild on any

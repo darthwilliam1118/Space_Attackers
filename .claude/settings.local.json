@@ -7,7 +7,15 @@
       "Bash(ruff check:*)",
       "Bash(find /c/Users/darth/Code/Space_Attackers/src -name \"*.py\" -exec grep -l \"\\\\.width\\\\|\\\\.height\" {} \\\\;)",
       "Bash(black .)",
-      "Bash(pytest --cov=src -q)"
+      "Bash(pytest --cov=src -q)",
+      "Read(//c/Users/darth/Code/arcade-game-framework/**)",
+      "Bash(pip install *)",
+      "Bash(black --check .)",
+      "Bash(pytest)",
+      "Bash(pytest --cov=src)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\darth\\Code\\arcade-game-framework"
     ]
   }
 }

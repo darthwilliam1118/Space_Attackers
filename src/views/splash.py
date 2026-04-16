@@ -33,15 +33,24 @@ class SplashView(arcade.View):
         self._ending_ready: bool = False  # "ending" track loaded; safe to play
         self._music_started: bool = False  # play() already called (main thread only)
         self._assets_ready: bool = False  # all tracks loaded; show prompt
-        self._title_text: Optional[arcade.Text] = None
+        self._title_line1: Optional[arcade.Text] = None
+        self._title_line2: Optional[arcade.Text] = None
         self._prompt_text: Optional[arcade.Text] = None
 
     def on_show_view(self) -> None:
         w, h = self.window.width, self.window.height
-        self._title_text = centered_text(
-            self.TITLE,
+        self._title_line1 = centered_text(
+            "Space",
             w,
-            h // 2 + 40,
+            h // 2 + 44,
+            font_size=64,
+            color=arcade.color.YELLOW,
+            font_name=FONT_MAIN,
+        )
+        self._title_line2 = centered_text(
+            "Attackers!",
+            w,
+            h // 2 - 36,
             font_size=64,
             color=arcade.color.YELLOW,
             font_name=FONT_MAIN,
@@ -86,8 +95,10 @@ class SplashView(arcade.View):
         self.clear()
         self.window.background.draw()  # type: ignore[attr-defined]
         self.window.star_field.draw()  # type: ignore[attr-defined]
-        if self._title_text:
-            self._title_text.draw()
+        if self._title_line1:
+            self._title_line1.draw()
+        if self._title_line2:
+            self._title_line2.draw()
         if self._assets_ready and self._prompt_text:
             self._prompt_text.draw()
 
