@@ -9,11 +9,11 @@ from __future__ import annotations
 from typing import Any, Optional
 
 import arcade
+from agf.levels.base_level import BaseLevel
 
 from src.dive_controller import DiveController
 from src.enemy_grid import EnemyGrid
 from src.game_event import GameEvent
-from src.levels.base_level import BaseLevel
 
 
 class StandardLevel(BaseLevel):

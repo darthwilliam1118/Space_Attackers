@@ -184,7 +184,7 @@ class GameStateManager:
         Called before PLAYER_KILLED so the level state is preserved across respawns.
         In-flight enemy bullets are discarded — same policy as SAVE_SNAPSHOT_AND_SWITCH.
         """
-        from src.levels.base_level import BaseLevel
+        from agf.levels.base_level import BaseLevel
 
         players: list = self.context.get("players", [])
         idx: int = self.context.get("active_player_index", 0)
@@ -197,7 +197,7 @@ class GameStateManager:
 
     def _handle_save_snapshot_and_switch(self) -> None:
         """Serialise level state for the active player, then switch."""
-        from src.levels.base_level import BaseLevel
+        from agf.levels.base_level import BaseLevel
 
         players: list = self.context.get("players", [])
         idx: int = self.context.get("active_player_index", 0)

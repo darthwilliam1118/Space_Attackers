@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from src.levels.base_level import BaseLevel
+from agf.levels.base_level import BaseLevel
 
 
 def create_level(

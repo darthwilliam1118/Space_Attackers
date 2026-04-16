@@ -1,11 +1,11 @@
-"""GameEvent — events returned by EnemyGrid.update() to decouple grid from state machine."""
+"""Thin re-export of agf.events.GameEvent.
+
+Kept so existing call sites continue to work.  New code should import
+``GameEvent`` from ``agf.events`` directly.
+"""
 
 from __future__ import annotations
 
-from enum import Enum, auto
+from agf.events import GameEvent
 
-
-class GameEvent(Enum):
-    PLAYER_KILLED = auto()
-    LEVEL_COMPLETE = auto()
-    ENEMY_DESTROYED = auto()
+__all__ = ["GameEvent"]
