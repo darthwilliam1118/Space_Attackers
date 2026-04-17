@@ -1,18 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(venv/Scripts/python -m pytest --cov=src -v)",
-      "Bash(venv/Scripts/python -m pytest --cov=src -q)",
       "Bash(python:*)",
-      "Bash(ruff check:*)",
-      "Bash(find /c/Users/darth/Code/Space_Attackers/src -name \"*.py\" -exec grep -l \"\\\\.width\\\\|\\\\.height\" {} \\\\;)",
-      "Bash(black .)",
-      "Bash(pytest --cov=src -q)",
-      "Read(//c/Users/darth/Code/arcade-game-framework/**)",
-      "Bash(pip install *)",
-      "Bash(black --check .)",
-      "Bash(pytest)",
-      "Bash(pytest --cov=src)"
+      "Bash(venv/Scripts/python:*)",
+      "Bash(pytest:*)",
+      "Bash(black:*)",
+      "Bash(ruff:*)",
+      "Bash(pip install:*)",
+      "Bash(gh:*)",
+      "Bash(git add:*)",
+      "Bash(git restore:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(git -C /c/Users/darth/Code/Space_Attackers:*)",
+      "Bash(git -C /c/Users/darth/Code/arcade-game-framework:*)",
+      "Read(//c/Users/darth/Code/arcade-game-framework/**)"
     ],
     "additionalDirectories": [
       "C:\\Users\\darth\\Code\\arcade-game-framework"
