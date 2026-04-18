@@ -180,3 +180,17 @@ Always use the 3.x API. Key breaking changes to be aware of:
 - Target: self-contained Windows .exe via PyInstaller
 - All assets must be loaded using resource paths compatible with PyInstaller bundles
 - Use a helper function for asset paths that handles both dev and bundled contexts
+
+## Power-up spawn behaviour
+- Level 1: no power-ups spawn at all (weight table is empty)
+- Types unlock one per level starting level 2, in UNLOCK_ORDER sequence
+- Unlock order defined in SAPowerUpSpawner.UNLOCK_ORDER — edit there
+  to change which types appear first
+- Spawn interval uses exponential decay curve (not linear) — see
+  PowerUpSpawner._compute_interval()
+- Sprites spawn above the window top and drift down at random angle
+  (-fall_angle_max to +fall_angle_max degrees) and random speed
+  (fall_speed_min to fall_speed_max px/s)
+- All sprites rotate at spin_rpm (default 10 RPM) while falling
+- fall_speed_min, fall_speed_max, fall_angle_max, spin_rpm all
+  configurable in game_config.toml [powerups] section

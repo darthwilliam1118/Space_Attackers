@@ -55,6 +55,7 @@ def _create_fresh(
             from src.enemy_config import EnemyConfig
             from src.enemy_grid import EnemyGrid
             from src.levels.standard_level import StandardLevel
+            from src.powerups.sa_manager import SAPowerUpManager
 
             cfg_e = config.enemies if config else EnemyConfig()
             cfg_d = config.diving if config else DivingConfig()
@@ -78,7 +79,15 @@ def _create_fresh(
                 sprite_scale=scale,
                 hp_bar_duration=hp_dur,
             )
-            level = StandardLevel(grid, dive)
+            powerup_manager = None
+            if config is not None and getattr(config, "powerups", None) is not None:
+                powerup_manager = SAPowerUpManager(
+                    config.powerups,
+                    window_width,
+                    window_height,
+                    sprite_scale=scale,
+                )
+            level = StandardLevel(grid, dive, powerup_manager)
             level.setup(level_number)
             return level
         case _:

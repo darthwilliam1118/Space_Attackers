@@ -76,25 +76,25 @@ class TestHUD1P:
         hud.update([p], 0, 2)
         assert hud._level.text == "TAMPERED"
 
-    def test_update_writes_lives_on_change(self) -> None:
+    def test_update_tracks_lives_on_change(self) -> None:
         hud = _hud1p()
         p = _player(lives=2)
         hud.update([p], 0, 1)
-        assert "♥♥" in hud._lives.text
+        assert hud._last_lives[0] == 2
 
-    def test_update_skips_lives_when_unchanged(self) -> None:
+    def test_update_skips_lives_cache_when_unchanged(self) -> None:
         hud = _hud1p()
         p = _player(lives=3)
         hud.update([p], 0, 1)
-        hud._lives.text = "TAMPERED"
-        hud.update([p], 0, 1)
-        assert hud._lives.text == "TAMPERED"
+        assert hud._last_lives[0] == 3
+        hud.update([p], 0, 1)  # same lives — cache stays at 3
+        assert hud._last_lives[0] == 3
 
     def test_lives_floor_at_zero(self) -> None:
         hud = _hud1p()
         p = _player(lives=0)
         hud.update([p], 0, 1)
-        assert "♥" not in hud._lives.text or hud._lives.text.count("♥") == 0
+        assert hud._last_lives[0] == 0
 
     def test_draw_calls_all_text_objects(self) -> None:
         hud = _hud1p()

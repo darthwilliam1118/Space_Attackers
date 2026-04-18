@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Optional
+from typing import Callable, Optional
 
 import arcade
 from agf.paths import resource_path
@@ -74,6 +74,19 @@ class PlayerShip(arcade.Sprite):
         # Fire cooldown
         self._fire_cooldown_remaining: float = 0.0
 
+        # Power-up multipliers (modified by active effects)
+        self.fire_cooldown_multiplier: float = 1.0
+        self.speed_multiplier: float = 1.0
+        self.bullet_scale_multiplier: float = 1.0
+        self.bullet_damage_multiplier: int = 1
+        self.shield_active: bool = False
+        self.shield_hits_remaining: int = 0
+        self.full_rotation: bool = False  # True during FreeMovementEffect
+
+        # Damage filter — view installs this to intercept hits via overlay effects.
+        # Returns the damage amount that should actually be applied (0 = absorbed).
+        self.damage_filter: Optional[Callable[[int], int]] = None
+
         # Hit points
         self.hit_points: int = config.player_max_hp
         self.max_hit_points: int = config.player_max_hp
@@ -90,7 +103,7 @@ class PlayerShip(arcade.Sprite):
     def apply_movement(self, keys_held: set[int], delta_time: float) -> None:
         """Update velocity with momentum, then move and clamp to zone."""
         cfg = self._config
-        max_speed = cfg.ship_speed * 2.0
+        max_speed = cfg.ship_speed * 2.0 * self.speed_multiplier
         accel = cfg.ship_accel * delta_time
         decel = cfg.ship_decel * delta_time
 
@@ -135,7 +148,7 @@ class PlayerShip(arcade.Sprite):
         """Return a PlayerBullet fired at the ship's current tilt angle, or None."""
         if self._fire_cooldown_remaining > 0.0:
             return None
-        self._fire_cooldown_remaining = self._config.fire_cooldown
+        self._fire_cooldown_remaining = self._config.fire_cooldown * self.fire_cooldown_multiplier
         return PlayerBullet(
             x=self.center_x,
             y=self.center_y + self.height / 2.0,
@@ -144,12 +157,21 @@ class PlayerShip(arcade.Sprite):
             window_height=self._window_height,
             angle_deg=self._tilt_angle,
             player_num=self._player_num,
-            scale=self._sprite_scale,
-            damage=self._config.player_bullet_damage,
+            scale=self._sprite_scale * self.bullet_scale_multiplier,
+            damage=self._config.player_bullet_damage * self.bullet_damage_multiplier,
         )
 
     def take_damage(self, amount: int) -> bool:
-        """Reduce HP by *amount*. Returns True if HP reaches zero (player dies)."""
+        """Reduce HP by *amount*. Returns True if HP reaches zero (player dies).
+
+        If a damage_filter is installed (by RunLevelView for overlay effects),
+        the amount is passed through it first — a filter may return 0 to
+        absorb the hit entirely.
+        """
+        if self.damage_filter is not None:
+            amount = self.damage_filter(amount)
+        if amount <= 0:
+            return False
         self.hit_points = max(0, self.hit_points - amount)
         return self.hit_points <= 0
 
@@ -198,14 +220,23 @@ class PlayerShip(arcade.Sprite):
         self._update_tilt(delta_time)
 
     def _update_tilt(self, delta_time: float) -> None:
-        """Step _tilt_angle toward the target derived from horizontal velocity."""
+        """Step _tilt_angle toward the target.
+
+        Normal mode: ±45° lean driven by horizontal velocity.
+        Full-rotation mode (free_move): left/right keys rotate CCW/CW at the same
+        tilt_rate with no angle limit. Movement axes remain screen-relative.
+        """
         max_speed = self._config.ship_speed * 2.0
-        # Moving right → negative angle (clockwise lean); left → positive (CCW lean).
-        target = (self._vx / max_speed) * 45.0 if max_speed > 0 else 0.0
-        max_step = self._config.ship_tilt_rate * delta_time
-        diff = target - self._tilt_angle
-        if abs(diff) <= max_step:
-            self._tilt_angle = target
+        if self.full_rotation:
+            if max_speed > 0:
+                rate = (self._vx / max_speed) * self._config.ship_tilt_rate
+                self._tilt_angle += rate * delta_time
         else:
-            self._tilt_angle += math.copysign(max_step, diff)
+            target = (self._vx / max_speed) * 45.0 if max_speed > 0 else 0.0
+            max_step = self._config.ship_tilt_rate * delta_time
+            diff = target - self._tilt_angle
+            if abs(diff) <= max_step:
+                self._tilt_angle = target
+            else:
+                self._tilt_angle += math.copysign(max_step, diff)
         self.angle = self._tilt_angle

@@ -13,6 +13,7 @@ from agf.config import BaseGameConfig, apply_argv_overrides, config_path
 from src.diving_config import DivingConfig
 from src.enemy_config import EnemyConfig
 from src.particles_config import ParticlesConfig
+from src.powerups.sa_powerup_config import SAPowerUpConfig
 from src.ship_config import ShipConfig
 from src.ui_config import UIConfig
 
@@ -34,6 +35,7 @@ class GameConfig(BaseGameConfig):
     particles: ParticlesConfig = field(default_factory=ParticlesConfig)
     ui: UIConfig = field(default_factory=UIConfig)
     diving: DivingConfig = field(default_factory=DivingConfig)
+    powerups: SAPowerUpConfig = field(default_factory=SAPowerUpConfig)
 
     @classmethod
     def load(cls, path: Optional[Path] = None) -> "GameConfig":
@@ -201,6 +203,85 @@ class GameConfig(BaseGameConfig):
                 dc_raw.get("dive_return_speed", DivingConfig.dive_return_speed)
             ),
         )
+        pu_raw = data.get("powerups", {})
+        pu = SAPowerUpConfig(
+            spawn_interval_base=float(
+                pu_raw.get("spawn_interval_base", SAPowerUpConfig.spawn_interval_base)
+            ),
+            spawn_interval_min=float(
+                pu_raw.get("spawn_interval_min", SAPowerUpConfig.spawn_interval_min)
+            ),
+            spawn_interval_jitter=float(
+                pu_raw.get("spawn_interval_jitter", SAPowerUpConfig.spawn_interval_jitter)
+            ),
+            spawn_interval_decay=float(
+                pu_raw.get("spawn_interval_decay", SAPowerUpConfig.spawn_interval_decay)
+            ),
+            powerups_scale=float(pu_raw.get("powerups_scale", SAPowerUpConfig.powerups_scale)),
+            fall_speed_min=float(pu_raw.get("fall_speed_min", SAPowerUpConfig.fall_speed_min)),
+            fall_speed_max=float(pu_raw.get("fall_speed_max", SAPowerUpConfig.fall_speed_max)),
+            fall_angle_max=float(pu_raw.get("fall_angle_max", SAPowerUpConfig.fall_angle_max)),
+            spin_rpm=float(pu_raw.get("spin_rpm", SAPowerUpConfig.spin_rpm)),
+            spawn_height_offset=float(
+                pu_raw.get("spawn_height_offset", SAPowerUpConfig.spawn_height_offset)
+            ),
+            shield_duration=float(pu_raw.get("shield_duration", SAPowerUpConfig.shield_duration)),
+            shield_hits=int(pu_raw.get("shield_hits", SAPowerUpConfig.shield_hits)),
+            health_restore_amount=int(
+                pu_raw.get("health_restore_amount", SAPowerUpConfig.health_restore_amount)
+            ),
+            rapid_fire_duration=float(
+                pu_raw.get("rapid_fire_duration", SAPowerUpConfig.rapid_fire_duration)
+            ),
+            rapid_fire_multiplier=float(
+                pu_raw.get("rapid_fire_multiplier", SAPowerUpConfig.rapid_fire_multiplier)
+            ),
+            big_gun_duration=float(
+                pu_raw.get("big_gun_duration", SAPowerUpConfig.big_gun_duration)
+            ),
+            big_gun_damage_multiplier=float(
+                pu_raw.get("big_gun_damage_multiplier", SAPowerUpConfig.big_gun_damage_multiplier)
+            ),
+            big_gun_scale_multiplier=float(
+                pu_raw.get("big_gun_scale_multiplier", SAPowerUpConfig.big_gun_scale_multiplier)
+            ),
+            speed_boost_duration=float(
+                pu_raw.get("speed_boost_duration", SAPowerUpConfig.speed_boost_duration)
+            ),
+            speed_boost_multiplier=float(
+                pu_raw.get("speed_boost_multiplier", SAPowerUpConfig.speed_boost_multiplier)
+            ),
+            triple_shot_duration=float(
+                pu_raw.get("triple_shot_duration", SAPowerUpConfig.triple_shot_duration)
+            ),
+            spread_shot_duration=float(
+                pu_raw.get("spread_shot_duration", SAPowerUpConfig.spread_shot_duration)
+            ),
+            spread_shot_angle=float(
+                pu_raw.get("spread_shot_angle", SAPowerUpConfig.spread_shot_angle)
+            ),
+            free_move_duration=float(
+                pu_raw.get("free_move_duration", SAPowerUpConfig.free_move_duration)
+            ),
+            weight_health=float(pu_raw.get("weight_health", SAPowerUpConfig.weight_health)),
+            weight_shield=float(pu_raw.get("weight_shield", SAPowerUpConfig.weight_shield)),
+            weight_rapid_fire=float(
+                pu_raw.get("weight_rapid_fire", SAPowerUpConfig.weight_rapid_fire)
+            ),
+            weight_big_gun=float(pu_raw.get("weight_big_gun", SAPowerUpConfig.weight_big_gun)),
+            weight_speed_boost=float(
+                pu_raw.get("weight_speed_boost", SAPowerUpConfig.weight_speed_boost)
+            ),
+            weight_triple_shot=float(
+                pu_raw.get("weight_triple_shot", SAPowerUpConfig.weight_triple_shot)
+            ),
+            weight_spread_shot=float(
+                pu_raw.get("weight_spread_shot", SAPowerUpConfig.weight_spread_shot)
+            ),
+            weight_free_move=float(
+                pu_raw.get("weight_free_move", SAPowerUpConfig.weight_free_move)
+            ),
+        )
         result = cls(
             starting_level=int(game.get("starting_level", cls.starting_level)),
             num_lives=int(game.get("num_lives", cls.num_lives)),
@@ -217,6 +298,7 @@ class GameConfig(BaseGameConfig):
             particles=pc,
             ui=uc,
             diving=dc,
+            powerups=pu,
         )
         apply_argv_overrides(result)
         return result
@@ -309,5 +391,41 @@ class GameConfig(BaseGameConfig):
             f"dive_bomb_speed = {dv.dive_bomb_speed}\n",
             f"dive_bonus_points = {dv.dive_bonus_points}\n",
             f"dive_return_speed = {dv.dive_return_speed}\n",
+        ]
+        pu = self.powerups
+        lines += [
+            "\n[powerups]\n",
+            f"spawn_interval_base = {pu.spawn_interval_base}\n",
+            f"spawn_interval_min = {pu.spawn_interval_min}\n",
+            f"spawn_interval_jitter = {pu.spawn_interval_jitter}\n",
+            f"spawn_interval_decay = {pu.spawn_interval_decay}\n",
+            f"powerups_scale = {pu.powerups_scale}\n",
+            f"fall_speed_min = {pu.fall_speed_min}\n",
+            f"fall_speed_max = {pu.fall_speed_max}\n",
+            f"fall_angle_max = {pu.fall_angle_max}\n",
+            f"spin_rpm = {pu.spin_rpm}\n",
+            f"spawn_height_offset = {pu.spawn_height_offset}\n",
+            f"shield_duration = {pu.shield_duration}\n",
+            f"shield_hits = {pu.shield_hits}\n",
+            f"health_restore_amount = {pu.health_restore_amount}\n",
+            f"rapid_fire_duration = {pu.rapid_fire_duration}\n",
+            f"rapid_fire_multiplier = {pu.rapid_fire_multiplier}\n",
+            f"big_gun_duration = {pu.big_gun_duration}\n",
+            f"big_gun_damage_multiplier = {pu.big_gun_damage_multiplier}\n",
+            f"big_gun_scale_multiplier = {pu.big_gun_scale_multiplier}\n",
+            f"speed_boost_duration = {pu.speed_boost_duration}\n",
+            f"speed_boost_multiplier = {pu.speed_boost_multiplier}\n",
+            f"triple_shot_duration = {pu.triple_shot_duration}\n",
+            f"spread_shot_duration = {pu.spread_shot_duration}\n",
+            f"spread_shot_angle = {pu.spread_shot_angle}\n",
+            f"free_move_duration = {pu.free_move_duration}\n",
+            f"weight_health = {pu.weight_health}\n",
+            f"weight_shield = {pu.weight_shield}\n",
+            f"weight_rapid_fire = {pu.weight_rapid_fire}\n",
+            f"weight_big_gun = {pu.weight_big_gun}\n",
+            f"weight_speed_boost = {pu.weight_speed_boost}\n",
+            f"weight_triple_shot = {pu.weight_triple_shot}\n",
+            f"weight_spread_shot = {pu.weight_spread_shot}\n",
+            f"weight_free_move = {pu.weight_free_move}\n",
         ]
         path.write_text("".join(lines), encoding="utf-8")

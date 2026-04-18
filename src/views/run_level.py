@@ -27,6 +27,7 @@ _SND_ENEMY_KILLED = "assets/sounds/explosionCrunch_000.ogg"
 _SND_PLAYER_KILLED = "assets/sounds/explosionCrunch_004.ogg"
 _SND_ENEMY_SHOOT = "assets/sounds/laserLarge_000.ogg"
 _SND_PLAYER_SHOOT = "assets/sounds/laserSmall_000.ogg"
+_SND_POWERUP_PICKUP = "assets/sounds/laserSmall_001.ogg"
 
 
 class RunLevelView(arcade.View):
@@ -36,7 +37,11 @@ class RunLevelView(arcade.View):
     Transitions via GameStateManager — never called from EnemyGrid directly.
 
     Debug shortcuts (active only when config.debug is True):
-      Shift+E — instantly clear all enemies → LEVEL_COMPLETE
+      Shift+E — instantly clear all enemies -> LEVEL_COMPLETE
+      Shift+D — force a dive attack
+      Shift+G — toggle god mode
+      Shift+K — trigger player death
+      Shift+P — spawn a random power-up instantly
     """
 
     def __init__(self, manager: "GameStateManager") -> None:
@@ -53,6 +58,7 @@ class RunLevelView(arcade.View):
         self._level: Optional[BaseLevel] = None
 
         self._paused: bool = False
+        self._pause_overlay_list: arcade.SpriteList = arcade.SpriteList()
 
         self._dying: bool = False
         self._death_explosion: Optional[ExplosionSprite] = None
@@ -74,6 +80,10 @@ class RunLevelView(arcade.View):
         self._snd_player_killed: Optional[arcade.Sound] = None
         self._snd_enemy_shoot: Optional[arcade.Sound] = None
         self._snd_player_shoot: Optional[arcade.Sound] = None
+        self._snd_powerup_pickup: Optional[arcade.Sound] = None
+
+        self._shield_sprite_ref: Optional[arcade.Sprite] = None
+        self._overlay_list: arcade.SpriteList = arcade.SpriteList()
 
         self._setup()
 
@@ -102,6 +112,8 @@ class RunLevelView(arcade.View):
         if active_player is not None and active_player.current_hp is not None:
             self._ship.hit_points = active_player.current_hp
         self._ship_list.append(self._ship)
+        # Install damage filter so overlay effects (shield) can absorb hits
+        self._ship.damage_filter = self._filter_damage
         self._level = ctx.get("current_level")
         self._debug = cfg.debug if cfg else False
         if cfg is not None:
@@ -123,6 +135,7 @@ class RunLevelView(arcade.View):
         self._snd_player_killed = arcade.load_sound(resource_path(_SND_PLAYER_KILLED))
         self._snd_enemy_shoot = arcade.load_sound(resource_path(_SND_ENEMY_SHOOT))
         self._snd_player_shoot = arcade.load_sound(resource_path(_SND_PLAYER_SHOOT))
+        self._snd_powerup_pickup = arcade.load_sound(resource_path(_SND_POWERUP_PICKUP))
 
     # ------------------------------------------------------------------
     # Arcade callbacks
@@ -137,6 +150,13 @@ class RunLevelView(arcade.View):
         self.window.music.play(track_key_for_level(level))  # type: ignore[attr-defined]
         num_players = len(players)
         self._hud = HUD(self.window.width, self.window.height, num_players)
+        _life_tex_p1 = arcade.load_texture(
+            resource_path("assets/images/PNG/UI/playerLife1_blue.png")
+        )
+        _life_tex_p2 = arcade.load_texture(
+            resource_path("assets/images/PNG/UI/playerLife2_red.png")
+        )
+        self._hud.setup_icons(_life_tex_p1, _life_tex_p2 if num_players >= 2 else None)
         self._paused_text = arcade.Text(
             "PAUSED",
             self.window.width / 2,
@@ -147,9 +167,20 @@ class RunLevelView(arcade.View):
             anchor_x="center",
             anchor_y="center",
         )
+        # Pre-bake the pause dim overlay as a sprite so on_draw() never calls
+        # immediate-mode draw functions (which call buffer.orphan() every frame).
+        overlay_sprite = arcade.SpriteSolidColor(
+            self.window.width,
+            self.window.height,
+            center_x=self.window.width / 2,
+            center_y=self.window.height / 2,
+            color=(0, 0, 0, 120),
+        )
+        self._pause_overlay_list.clear()
+        self._pause_overlay_list.append(overlay_sprite)
         if self._debug:
             self._debug_text = centered_text(
-                "Shift+E = Clear  |  Shift+D = Dive  |  Shift+G = God Mode  |  Shift+K = Kill",
+                "Shift+E=Clear  Shift+D=Dive  Shift+G=God  Shift+K=Kill  Shift+P=PowerUp",
                 self.window.width,
                 self.window.height - 10,
                 font_size=11,
@@ -159,7 +190,7 @@ class RunLevelView(arcade.View):
             self._god_mode_text = arcade.Text(
                 "GOD MODE ON",
                 self.window.width / 2,
-                self.window.height - 46,
+                self.window.height - 62,
                 (255, 220, 0, 255),
                 font_size=13,
                 font_name=FONT_THIN,
@@ -173,6 +204,12 @@ class RunLevelView(arcade.View):
         delta_time = min(delta_time, 1.0 / 15.0)  # cap to ~66ms to survive debugger pauses
 
         if self._paused:
+            # Run a gen-0 sweep each frame to prevent orphaned GL buffer objects
+            # (created by any remaining on_draw allocations) from building up and
+            # triggering a slow gen-2 collection the moment gameplay resumes.
+            import gc
+
+            gc.collect(0)
             return
 
         # Guard: respawned into an empty level (last enemy died during death sequence)
@@ -237,7 +274,9 @@ class RunLevelView(arcade.View):
             players = ctx.get("players", [])
             idx = ctx.get("active_player_index", 0)
             level = players[idx].current_level if players else 1
-            self._hud.update(players, idx, level)
+            manager = self._level.get_powerup_manager() if self._level is not None else None
+            active_effects = manager.get_active_effects() if manager is not None else []
+            self._hud.update(players, idx, level, active_effects)
 
         # Update score popups
         for popup in self._score_popups:
@@ -248,13 +287,19 @@ class RunLevelView(arcade.View):
         for exp in list(self._explosions):
             exp.update(delta_time)  # type: ignore[arg-type]
 
-        # Level-cleared: continue bullet animations, wait for explosions to finish
+        # Level-cleared: continue bullet and powerup animations, wait for explosions to finish
         if self._level_cleared:
             for bullet in list(self._player_bullets):
                 bullet.update(delta_time)  # type: ignore[arg-type]
             if self._level is not None:
                 for bullet in list(self._level.get_enemy_bullet_sprite_list()):
                     bullet.update(delta_time)
+                _pu_manager = self._level.get_powerup_manager()
+                if _pu_manager is not None:
+                    from src.powerups.sa_manager import SAPowerUpManager
+
+                    if isinstance(_pu_manager, SAPowerUpManager):
+                        _pu_manager.update_sprites_only(delta_time)
             if not self._explosions:
                 self._save_player_hp()
                 self._manager.transition(GameState.LEVEL_COMPLETE)
@@ -353,16 +398,53 @@ class RunLevelView(arcade.View):
         if self._ship.hit_points < ship_hp_before and GameEvent.PLAYER_KILLED not in events:
             self._spawn_hit_ring(self._ship.center_x, self._ship.center_y)
 
+        healed = self._ship.hit_points - ship_hp_before
+        if healed > 0:
+            ui_cfg = cfg.ui if cfg is not None else UIConfig()
+            self._score_popups.append(
+                ScorePopup(
+                    self._ship.center_x,
+                    self._ship.center_y + self._ship.height / 2,
+                    healed,
+                    duration=ui_cfg.popup_duration,
+                    rise_speed=ui_cfg.popup_rise_speed,
+                )
+            )
+
         god_mode: bool = cfg.god_mode if cfg is not None else False
+        # PLAYER_KILLED must be checked before level-clear so that a simultaneous
+        # last-enemy-kill + player-death in the same frame doesn't silently drop the death.
+        if GameEvent.PLAYER_KILLED in events and not god_mode:
+            self._trigger_death()
+            return
         for event in events:
-            if event == GameEvent.PLAYER_KILLED:
-                if not god_mode:
-                    self._trigger_death()
-                    return
+            if event == GameEvent.POWERUP_COLLECTED:
+                if self._snd_powerup_pickup is not None:
+                    arcade.play_sound(self._snd_powerup_pickup, volume=self._sfx_volume())
             elif event in (GameEvent.LEVEL_COMPLETE, GameEvent.ENEMY_DESTROYED):
                 if self._level is not None and self._level.is_cleared():
                     self._level_cleared = True
                     return
+
+        # Refresh shield overlay reference and pulse it
+        manager = self._level.get_powerup_manager() if self._level is not None else None
+        overlay = manager.get_active_overlay() if manager is not None else None
+        if overlay is not None:
+            new_ref = overlay.get_overlay_sprite()
+            if new_ref is not self._shield_sprite_ref:
+                self._overlay_list.clear()
+                if new_ref is not None:
+                    self._overlay_list.append(new_ref)
+                self._shield_sprite_ref = new_ref
+            if self._shield_sprite_ref is not None:
+                from src.sprites.shield_sprite import ShieldSprite
+
+                if isinstance(self._shield_sprite_ref, ShieldSprite):
+                    self._shield_sprite_ref.pulse(delta_time)
+        else:
+            if self._shield_sprite_ref is not None:
+                self._overlay_list.clear()
+                self._shield_sprite_ref = None
 
     def on_draw(self) -> None:
         self.clear()
@@ -373,14 +455,19 @@ class RunLevelView(arcade.View):
             self._level.draw()
 
         self._player_bullets.draw()
+        if not self._paused:
+            self._draw_enemy_hp_bars()
+            self._draw_player_hp_bar()
         self._ship_list.draw()
+        if self._shield_sprite_ref is not None:
+            if self._ship is not None:
+                self._shield_sprite_ref.center_x = self._ship.center_x
+                self._shield_sprite_ref.center_y = self._ship.center_y
+            self._overlay_list.draw()
         self._shockwaves.draw()
         self._explosions.draw()
         if self._particle_emitter is not None:
             self._particle_emitter.draw()
-
-        self._draw_enemy_hp_bars()
-        self._draw_player_hp_bar()
 
         for popup in self._score_popups:
             popup.draw()
@@ -396,8 +483,7 @@ class RunLevelView(arcade.View):
                 self._god_mode_text.draw()
 
         if self._paused:
-            w, h = self.window.width, self.window.height
-            arcade.draw_lrbt_rectangle_filled(0, w, 0, h, (0, 0, 0, 120))
+            self._pause_overlay_list.draw()
             if self._paused_text is not None:
                 self._paused_text.draw()
 
@@ -434,12 +520,40 @@ class RunLevelView(arcade.View):
             self._trigger_death()
             return
 
+        if (
+            self._debug
+            and key == arcade.key.P
+            and (modifiers & arcade.key.MOD_SHIFT)
+            and self._level is not None
+            and self._ship is not None
+        ):
+            manager = self._level.get_powerup_manager()
+            if manager is not None:
+                import random
+
+                from src.powerups.sa_spawner import SAPowerUpSpawner
+
+                effect_type = random.choice(SAPowerUpSpawner.UNLOCK_ORDER)
+                sprite = manager.create_sprite(
+                    effect_type,
+                    random.uniform(40, self.window.width - 40),
+                    0,  # y ignored — create_sprite spawns above window top
+                )
+                manager._sprites.append(sprite)
+            return
+
         if key == arcade.key.P:
             self._paused = not self._paused
             if self._paused:
+                import gc
+
+                gc.collect()  # full collection now so nothing accumulates during pause
                 self.window.music.pause()  # type: ignore[attr-defined]
             else:
                 self.window.music.resume()  # type: ignore[attr-defined]
+            return
+
+        if self._paused:
             return
 
         self._keys_held.add(key)
@@ -462,11 +576,46 @@ class RunLevelView(arcade.View):
     def _fire(self) -> None:
         if self._ship is None:
             return
+        manager = self._level.get_powerup_manager() if self._level is not None else None
+        behavior = manager.get_active_behavior() if manager is not None else None
+        if behavior is not None:
+            bullets = behavior.get_bullets(self._ship)
+            if bullets and self._snd_player_shoot is not None:
+                arcade.play_sound(self._snd_player_shoot, volume=self._sfx_volume())
+            for b in bullets:
+                self._player_bullets.append(b)
+            return
+
         bullet = self._ship.try_fire()
         if bullet is not None:
             self._player_bullets.append(bullet)
             if self._snd_player_shoot is not None:
                 arcade.play_sound(self._snd_player_shoot, volume=self._sfx_volume())
+
+    def _filter_damage(self, amount: int) -> int:
+        """Damage filter installed on PlayerShip — absorbs hits via active overlay."""
+        if self._level is None:
+            return amount
+        manager = self._level.get_powerup_manager()
+        if manager is None:
+            return amount
+        overlay = manager.get_active_overlay()
+        if overlay is None:
+            return amount
+        depleted = overlay.on_hit_absorbed()
+        if depleted:
+            manager.remove_effect(overlay, self._ship, self._make_effect_context())
+            self._shield_sprite_ref = None
+            self._overlay_list.clear()
+        return 0
+
+    def _make_effect_context(self) -> dict:
+        cfg = self._manager.context.get("config")
+        return {
+            "window_width": self.window.width,
+            "window_height": self.window.height,
+            "sprite_scale": cfg.sprite_scale if cfg is not None else 1.0,
+        }
 
     def _trigger_death(self) -> None:
         """Begin death sequence: explosion plays, then PLAYER_KILLED transition."""
@@ -476,6 +625,16 @@ class RunLevelView(arcade.View):
         self._death_timer = 0.0
         if self._snd_player_killed is not None:
             arcade.play_sound(self._snd_player_killed, volume=self._sfx_volume())
+        manager = self._level.get_powerup_manager() if self._level is not None else None
+        if manager is not None:
+            from src.powerups.sa_manager import SAPowerUpManager
+
+            if isinstance(manager, SAPowerUpManager):
+                manager.clear_effects_only(self._ship, self._make_effect_context())
+            else:
+                manager.clear_all(self._ship, self._make_effect_context())
+        self._shield_sprite_ref = None
+        self._overlay_list.clear()
         vx, vy = self._ship.velocity
         x, y = self._ship.center_x, self._ship.center_y
         explosion = self._ship.kill(vx=vx, vy=vy)

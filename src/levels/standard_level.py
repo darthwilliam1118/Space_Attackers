@@ -1,7 +1,6 @@
 """StandardLevel — wraps EnemyGrid + DiveController behind BaseLevel interface.
 
-Preserves all existing behaviour exactly. No logic changes to EnemyGrid
-or DiveController — this class is a pure adapter.
+Owns the optional SAPowerUpManager and forwards lifecycle calls to it.
 """
 
 from __future__ import annotations
@@ -9,19 +8,26 @@ from __future__ import annotations
 from typing import Any, Optional
 
 import arcade
+from agf.events import GameEvent
 from agf.levels.base_level import BaseLevel
 
 from src.dive_controller import DiveController
 from src.enemy_grid import EnemyGrid
-from src.game_event import GameEvent
+from src.powerups.sa_manager import SAPowerUpManager
 
 
 class StandardLevel(BaseLevel):
     """Standard space-shooter level: fixed grid + periodic dive attacks."""
 
-    def __init__(self, grid: EnemyGrid, dive_ctrl: DiveController) -> None:
+    def __init__(
+        self,
+        grid: EnemyGrid,
+        dive_ctrl: DiveController,
+        powerup_manager: Optional[SAPowerUpManager] = None,
+    ) -> None:
         self._grid = grid
         self._dive = dive_ctrl
+        self._powerup_manager = powerup_manager
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -34,6 +40,8 @@ class StandardLevel(BaseLevel):
     def setup(self, level_number: int) -> None:
         self._grid.setup(level_number)
         self._dive.setup(level_number, self._grid)
+        if self._powerup_manager is not None:
+            self._powerup_manager.setup(level_number, self.level_type)
 
     # ------------------------------------------------------------------
     # Per-frame
@@ -45,15 +53,19 @@ class StandardLevel(BaseLevel):
         player_ship: Any,
         player_bullets: Optional[arcade.SpriteList] = None,
     ) -> list[GameEvent]:
-        """Update grid and dive controller.
-
-        player_bullets is passed directly to DiveController so it can
-        handle bullet vs diving-ship collision internally (existing behaviour).
-        """
         bullets = player_bullets if player_bullets is not None else arcade.SpriteList()
         events: list[GameEvent] = []
         events += self._grid.update(delta_time, player_ship)
         events += self._dive.update(delta_time, self._grid, player_ship, bullets)
+        if self._powerup_manager is not None:
+            collected = self._powerup_manager.update(
+                delta_time,
+                player_ship,
+                self._effect_context(),
+                self.get_enemy_x_positions(),
+            )
+            for _ in collected:
+                events.append(GameEvent.POWERUP_COLLECTED)
         return events
 
     def draw(self) -> None:
@@ -61,6 +73,8 @@ class StandardLevel(BaseLevel):
         self._grid.get_bullet_sprite_list().draw()
         self._dive.get_all_sprites().draw()
         self._dive.get_all_bullets().draw()
+        if self._powerup_manager is not None:
+            self._powerup_manager.draw()
 
     # ------------------------------------------------------------------
     # State queries
@@ -74,11 +88,6 @@ class StandardLevel(BaseLevel):
     # ------------------------------------------------------------------
 
     def apply_player_bullet(self, bullet: Any) -> Any:
-        """Check bullet against the enemy grid only.
-
-        DiveController handles its own bullet collision inside update()
-        via the player_bullets list, so diving ships are NOT checked here.
-        """
         return self._grid.apply_player_bullet(bullet)
 
     # ------------------------------------------------------------------
@@ -118,6 +127,16 @@ class StandardLevel(BaseLevel):
         return combined
 
     # ------------------------------------------------------------------
+    # Power-ups
+    # ------------------------------------------------------------------
+
+    def get_powerup_manager(self) -> Optional[SAPowerUpManager]:
+        return self._powerup_manager
+
+    def get_enemy_x_positions(self) -> list[float]:
+        return [s.center_x for s in self._grid.get_sprite_list()]
+
+    # ------------------------------------------------------------------
     # 2P dive wait
     # ------------------------------------------------------------------
 
@@ -150,6 +169,8 @@ class StandardLevel(BaseLevel):
         snapshot = self._grid.to_snapshot()
         snapshot["level_type"] = "standard"
         snapshot["diving"] = self._dive.to_snapshot()
+        if self._powerup_manager is not None:
+            snapshot["powerups"] = self._powerup_manager.to_snapshot()
         return snapshot
 
     @classmethod
@@ -187,4 +208,41 @@ class StandardLevel(BaseLevel):
             sprite_scale=scale,
             hp_bar_duration=hp_dur,
         )
-        return cls(grid, dive_ctrl)
+
+        powerup_manager: Optional[SAPowerUpManager] = None
+        if config is not None and getattr(config, "powerups", None) is not None:
+            pu_snapshot = snapshot.get("powerups")
+            if pu_snapshot is not None:
+                powerup_manager = SAPowerUpManager.from_snapshot(  # type: ignore[assignment]
+                    pu_snapshot,
+                    config.powerups,
+                    window_width,
+                    window_height,
+                    sprite_scale=scale,
+                    level_number=1,
+                    level_type="standard",
+                )
+            else:
+                powerup_manager = SAPowerUpManager(
+                    config.powerups,
+                    window_width,
+                    window_height,
+                    sprite_scale=scale,
+                )
+                powerup_manager.setup(1, "standard")
+
+        return cls(grid, dive_ctrl, powerup_manager)
+
+    # ------------------------------------------------------------------
+    # Internal
+    # ------------------------------------------------------------------
+
+    def _effect_context(self) -> dict:
+        # Power-up sprites already know window dims via the manager;
+        # this dict is what gets passed to effect.apply / .remove.
+        # Width/height pulled from the manager so we don't duplicate state.
+        return {
+            "window_width": self._powerup_manager._window_width,  # type: ignore[union-attr]
+            "window_height": self._powerup_manager._window_height,  # type: ignore[union-attr]
+            "sprite_scale": self._powerup_manager._scale,  # type: ignore[union-attr]
+        }

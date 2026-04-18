@@ -18,7 +18,14 @@
       "Bash(git check-ignore:*)",
       "Bash(git -C /c/Users/darth/Code/Space_Attackers:*)",
       "Bash(git -C /c/Users/darth/Code/arcade-game-framework:*)",
-      "Read(//c/Users/darth/Code/arcade-game-framework/**)"
+      "Read(//c/Users/darth/Code/arcade-game-framework/**)",
+      "Bash(C:/Users/darth/Code/Space_Attackers/venv/Scripts/python.exe -m pip install --force-reinstall --no-deps \"git+https://github.com/darthwilliam1118/arcade-game-framework@main\")",
+      "Bash(venv/Scripts/python.exe -m pytest tests/ --tb=short)",
+      "Bash(venv/Scripts/python.exe -m pytest tests/test_powerup_effects.py tests/test_sa_spawner.py tests/test_sa_manager.py --tb=short)",
+      "Bash(venv/Scripts/python.exe -c ' *)",
+      "Bash(venv/Scripts/python.exe -m pytest tests/ --tb=short -q)",
+      "Bash(venv/Scripts/python.exe -m pytest tests/ -q)",
+      "Bash(grep -v \"^$\\\\|reformatted\\\\|All done\\\\|unchanged\\\\|Oh no\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\darth\\Code\\arcade-game-framework"

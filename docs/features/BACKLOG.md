@@ -3,7 +3,7 @@ Ideas for new features for the game. Mark with X as completed.
 Need to rack and stack
 ## Next Features
 - [x] Hit points concept (both enemy and player) (major)
-- [ ] Power ups (Shields, better gun, HP repair) (major)
+- [x] Power ups (Shields, better gun, HP repair) (major)
 - [ ] Boss Levels (major)
 - [ ] Bonus Levels (major)
 - [x] Pausing (minor)
