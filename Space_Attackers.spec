@@ -42,6 +42,7 @@ exe = EXE(  # noqa: F821
     a.datas,
     [],
     name="Space_Attackers",
+    icon=os.path.join(ROOT, "assets", "images", "sa-icon.ico"),
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
