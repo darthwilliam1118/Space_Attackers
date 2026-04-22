@@ -22,13 +22,21 @@ class LevelCompleteView(_LevelCompleteViewBase):
     def apply_bonus(self) -> None:
         players = self._manager.context.get("players", [])
         idx = self._manager.context.get("active_player_index", 0)
+        is_meteor = self._manager.context.get("current_level_is_meteor", False)
         if players:
             player = players[idx]
             player.score += _LEVEL_BONUS
-            player.current_level += 1
+            if not is_meteor:
+                old_level = player.current_level
+                player.current_level += 1
+                if old_level % 3 == 0:
+                    self._manager.context["pending_meteor_storm"] = True
             player.level_snapshot = None
+        self._manager.context.pop("current_level_is_meteor", None)
 
     def build_bonus_text(self) -> str:
+        if self._manager.context.get("current_level_is_meteor", False):
+            return f"METEOR STORM    Bonus: +{_LEVEL_BONUS}"
         players = self._manager.context.get("players", [])
         idx = self._manager.context.get("active_player_index", 0)
         level = players[idx].current_level if players else 1

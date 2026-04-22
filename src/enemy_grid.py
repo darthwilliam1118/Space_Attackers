@@ -255,7 +255,8 @@ class EnemyGrid:
                         events.append(GameEvent.PLAYER_KILLED)
                         return events
 
-            # Collision: enemy sprite vs player ship — remove enemy and queue explosion
+            # Collision: enemy sprite vs player ship — remove enemy and queue explosion.
+            # Shield absorbs the collision; without shield the player is killed.
             hits = arcade.check_for_collision_with_list(player_ship, self._sprite_list)
             if hits:
                 for enemy in hits:
@@ -263,7 +264,8 @@ class EnemyGrid:
                     enemy.remove_from_sprite_lists()
                     self._enemies_destroyed += 1
                 self.recalculate_speed()
-                events.append(GameEvent.PLAYER_KILLED)
+                if player_ship.take_damage(player_ship.hit_points):
+                    events.append(GameEvent.PLAYER_KILLED)
                 return events
 
         return events

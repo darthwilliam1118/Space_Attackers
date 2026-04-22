@@ -18,15 +18,18 @@ def create_level(
     window_width: int,
     window_height: int,
     snapshot: Optional[dict] = None,
+    force_level_type: Optional[str] = None,
 ) -> BaseLevel:
     """Create or restore the appropriate level for *level_number*.
 
     If *snapshot* is provided, restores from saved state.
+    If *force_level_type* is given, overrides the type detection (used to
+    insert meteor storms at the right point in the level sequence).
     Otherwise creates a fresh level and calls setup().
     """
     if snapshot is not None:
         return _restore_from_snapshot(snapshot, config, window_width, window_height)
-    level_type = _get_level_type(level_number)
+    level_type = force_level_type if force_level_type is not None else _get_level_type(level_number)
     return _create_fresh(level_type, level_number, config, window_width, window_height)
 
 
@@ -90,6 +93,23 @@ def _create_fresh(
             level = StandardLevel(grid, dive, powerup_manager)
             level.setup(level_number)
             return level
+        case "meteor":
+            from src.levels.meteor_level import MeteorLevel
+            from src.meteor_config import MeteorConfig
+
+            meteor_cfg = config.meteors if config is not None else MeteorConfig()
+            scale = config.sprite_scale if config is not None else 1.0
+            powerup_manager = None
+            if config is not None and getattr(config, "powerups", None) is not None:
+                from src.powerups.sa_manager import SAPowerUpManager
+
+                powerup_manager = SAPowerUpManager(
+                    config.powerups, window_width, window_height, sprite_scale=scale
+                )
+            level = MeteorLevel(meteor_cfg, window_width, window_height, powerup_manager)
+            level.setup(level_number)
+            return level
+
         case _:
             raise ValueError(f"Unknown level type: {level_type!r}")
 
@@ -108,5 +128,9 @@ def _restore_from_snapshot(
             from src.levels.standard_level import StandardLevel
 
             return StandardLevel.from_snapshot(snapshot, config, window_width, window_height)
+        case "meteor":
+            from src.levels.meteor_level import MeteorLevel
+
+            return MeteorLevel.from_snapshot(snapshot, config, window_width, window_height)
         case _:
             raise ValueError(f"Cannot restore unknown level type: {level_type!r}")

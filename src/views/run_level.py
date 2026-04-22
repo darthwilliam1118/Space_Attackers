@@ -212,6 +212,20 @@ class RunLevelView(arcade.View):
             gc.collect(0)
             return
 
+        # Safety net: if HP reached zero via any path that didn't fire PLAYER_KILLED
+        # (e.g. shield filter edge case, simultaneous last-enemy-kill + lethal hit),
+        # trigger death here before the is_cleared() guard promotes it to LEVEL_COMPLETE.
+        _cfg_early = self._manager.context.get("config")
+        _god_early: bool = _cfg_early.god_mode if _cfg_early is not None else False
+        if (
+            not self._dying
+            and not _god_early
+            and self._ship is not None
+            and self._ship.hit_points <= 0
+        ):
+            self._trigger_death()
+            return
+
         # Guard: respawned into an empty level (last enemy died during death sequence)
         if not self._dying and not self._waiting_for_dives and not self._level_cleared:
             if self._level is None or self._level.is_cleared():
@@ -241,7 +255,9 @@ class RunLevelView(arcade.View):
             self._score_popups = [p for p in self._score_popups if not p.is_done]
             explosion_done = self._death_explosion is None or self._death_explosion.is_complete
             if explosion_done or self._death_timer >= 2.0:
-                if self._level is not None and self._level.has_any_airborne():
+                players = self._manager.context.get("players", [])
+                is_multiplayer = len(players) > 1
+                if is_multiplayer and self._level is not None and self._level.has_any_airborne():
                     self._dying = False
                     self._waiting_for_dives = True
                     self._level.block_new_launches()
@@ -273,10 +289,11 @@ class RunLevelView(arcade.View):
             ctx = self._manager.context
             players = ctx.get("players", [])
             idx = ctx.get("active_player_index", 0)
-            level = players[idx].current_level if players else 1
+            is_meteor = ctx.get("current_level_is_meteor", False)
+            level_display = -1 if is_meteor else (players[idx].current_level if players else 1)
             manager = self._level.get_powerup_manager() if self._level is not None else None
             active_effects = manager.get_active_effects() if manager is not None else []
-            self._hud.update(players, idx, level, active_effects)
+            self._hud.update(players, idx, level_display, active_effects)
 
         # Update score popups
         for popup in self._score_popups:
@@ -345,7 +362,6 @@ class RunLevelView(arcade.View):
                         self.spawn_destruction_effect(hit_x, hit_y, vx, vy)
                         if self._level is not None and self._level.is_cleared():
                             self._level_cleared = True
-                            return
                     else:
                         vx, vy = self._level.velocity
                         self._spawn_hit_ring(hit.cx, hit.cy, vx, vy)
@@ -445,6 +461,10 @@ class RunLevelView(arcade.View):
             if self._shield_sprite_ref is not None:
                 self._overlay_list.clear()
                 self._shield_sprite_ref = None
+
+        # If the bullet loop set _level_cleared this frame, don't double-process next turn.
+        if self._level_cleared:
+            return
 
     def on_draw(self) -> None:
         self.clear()

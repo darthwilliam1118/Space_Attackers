@@ -23,7 +23,18 @@ class SAPowerUpSpawner(PowerUpSpawner):
         "free_move",
     ]
 
+    def _compute_interval(self) -> float:
+        interval = super()._compute_interval()
+        if self._level_type == "meteor":
+            cfg: "SAPowerUpConfig" = self._config  # type: ignore[assignment]
+            factor = cfg.meteor_spawn_interval_factor
+            if factor > 0:
+                interval = max(self._config.spawn_interval_min / factor, interval / factor)
+        return interval
+
     def _available_types(self) -> list[str]:
+        if self._level_type == "meteor":
+            return list(self.UNLOCK_ORDER)
         unlocked_count = max(0, self._level_number - 1)
         return self.UNLOCK_ORDER[:unlocked_count]
 

@@ -12,6 +12,7 @@ from agf.config import BaseGameConfig, apply_argv_overrides, config_path
 
 from src.diving_config import DivingConfig
 from src.enemy_config import EnemyConfig
+from src.meteor_config import MeteorConfig
 from src.particles_config import ParticlesConfig
 from src.powerups.sa_powerup_config import SAPowerUpConfig
 from src.ship_config import ShipConfig
@@ -36,6 +37,7 @@ class GameConfig(BaseGameConfig):
     ui: UIConfig = field(default_factory=UIConfig)
     diving: DivingConfig = field(default_factory=DivingConfig)
     powerups: SAPowerUpConfig = field(default_factory=SAPowerUpConfig)
+    meteors: MeteorConfig = field(default_factory=MeteorConfig)
 
     @classmethod
     def load(cls, path: Optional[Path] = None) -> "GameConfig":
@@ -225,6 +227,11 @@ class GameConfig(BaseGameConfig):
             spawn_height_offset=float(
                 pu_raw.get("spawn_height_offset", SAPowerUpConfig.spawn_height_offset)
             ),
+            meteor_spawn_interval_factor=float(
+                pu_raw.get(
+                    "meteor_spawn_interval_factor", SAPowerUpConfig.meteor_spawn_interval_factor
+                )
+            ),
             shield_duration=float(pu_raw.get("shield_duration", SAPowerUpConfig.shield_duration)),
             shield_hits=int(pu_raw.get("shield_hits", SAPowerUpConfig.shield_hits)),
             health_restore_amount=int(
@@ -282,6 +289,36 @@ class GameConfig(BaseGameConfig):
                 pu_raw.get("weight_free_move", SAPowerUpConfig.weight_free_move)
             ),
         )
+        me_raw = data.get("meteors", {})
+        mc = MeteorConfig(
+            storm_duration=float(me_raw.get("storm_duration", MeteorConfig.storm_duration)),
+            spawn_rate_base=float(me_raw.get("spawn_rate_base", MeteorConfig.spawn_rate_base)),
+            spawn_rate_scale_pct=float(
+                me_raw.get("spawn_rate_scale_pct", MeteorConfig.spawn_rate_scale_pct)
+            ),
+            spawn_rate_max=float(me_raw.get("spawn_rate_max", MeteorConfig.spawn_rate_max)),
+            fall_speed_min=float(me_raw.get("fall_speed_min", MeteorConfig.fall_speed_min)),
+            fall_speed_max=float(me_raw.get("fall_speed_max", MeteorConfig.fall_speed_max)),
+            fall_angle_max=float(me_raw.get("fall_angle_max", MeteorConfig.fall_angle_max)),
+            spin_rpm_min=float(me_raw.get("spin_rpm_min", MeteorConfig.spin_rpm_min)),
+            spin_rpm_max=float(me_raw.get("spin_rpm_max", MeteorConfig.spin_rpm_max)),
+            spawn_height_offset=float(
+                me_raw.get("spawn_height_offset", MeteorConfig.spawn_height_offset)
+            ),
+            hp_bar_duration=float(me_raw.get("hp_bar_duration", MeteorConfig.hp_bar_duration)),
+            prob_large=float(me_raw.get("prob_large", MeteorConfig.prob_large)),
+            prob_med=float(me_raw.get("prob_med", MeteorConfig.prob_med)),
+            prob_small=float(me_raw.get("prob_small", MeteorConfig.prob_small)),
+            prob_tiny=float(me_raw.get("prob_tiny", MeteorConfig.prob_tiny)),
+            hp_large=int(me_raw.get("hp_large", MeteorConfig.hp_large)),
+            hp_med=int(me_raw.get("hp_med", MeteorConfig.hp_med)),
+            hp_small=int(me_raw.get("hp_small", MeteorConfig.hp_small)),
+            hp_tiny=int(me_raw.get("hp_tiny", MeteorConfig.hp_tiny)),
+            points_large=int(me_raw.get("points_large", MeteorConfig.points_large)),
+            points_med=int(me_raw.get("points_med", MeteorConfig.points_med)),
+            points_small=int(me_raw.get("points_small", MeteorConfig.points_small)),
+            points_tiny=int(me_raw.get("points_tiny", MeteorConfig.points_tiny)),
+        )
         result = cls(
             starting_level=int(game.get("starting_level", cls.starting_level)),
             num_lives=int(game.get("num_lives", cls.num_lives)),
@@ -299,6 +336,7 @@ class GameConfig(BaseGameConfig):
             ui=uc,
             diving=dc,
             powerups=pu,
+            meteors=mc,
         )
         apply_argv_overrides(result)
         return result
@@ -399,6 +437,7 @@ class GameConfig(BaseGameConfig):
             f"spawn_interval_min = {pu.spawn_interval_min}\n",
             f"spawn_interval_jitter = {pu.spawn_interval_jitter}\n",
             f"spawn_interval_decay = {pu.spawn_interval_decay}\n",
+            f"meteor_spawn_interval_factor = {pu.meteor_spawn_interval_factor}\n",
             f"powerups_scale = {pu.powerups_scale}\n",
             f"fall_speed_min = {pu.fall_speed_min}\n",
             f"fall_speed_max = {pu.fall_speed_max}\n",
@@ -427,5 +466,32 @@ class GameConfig(BaseGameConfig):
             f"weight_triple_shot = {pu.weight_triple_shot}\n",
             f"weight_spread_shot = {pu.weight_spread_shot}\n",
             f"weight_free_move = {pu.weight_free_move}\n",
+        ]
+        me = self.meteors
+        lines += [
+            "\n[meteors]\n",
+            f"storm_duration = {me.storm_duration}\n",
+            f"spawn_rate_base = {me.spawn_rate_base}\n",
+            f"spawn_rate_scale_pct = {me.spawn_rate_scale_pct}\n",
+            f"spawn_rate_max = {me.spawn_rate_max}\n",
+            f"fall_speed_min = {me.fall_speed_min}\n",
+            f"fall_speed_max = {me.fall_speed_max}\n",
+            f"fall_angle_max = {me.fall_angle_max}\n",
+            f"spin_rpm_min = {me.spin_rpm_min}\n",
+            f"spin_rpm_max = {me.spin_rpm_max}\n",
+            f"spawn_height_offset = {me.spawn_height_offset}\n",
+            f"hp_bar_duration = {me.hp_bar_duration}\n",
+            f"prob_large = {me.prob_large}\n",
+            f"prob_med = {me.prob_med}\n",
+            f"prob_small = {me.prob_small}\n",
+            f"prob_tiny = {me.prob_tiny}\n",
+            f"hp_large = {me.hp_large}\n",
+            f"hp_med = {me.hp_med}\n",
+            f"hp_small = {me.hp_small}\n",
+            f"hp_tiny = {me.hp_tiny}\n",
+            f"points_large = {me.points_large}\n",
+            f"points_med = {me.points_med}\n",
+            f"points_small = {me.points_small}\n",
+            f"points_tiny = {me.points_tiny}\n",
         ]
         path.write_text("".join(lines), encoding="utf-8")

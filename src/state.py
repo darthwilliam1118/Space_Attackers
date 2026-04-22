@@ -151,12 +151,18 @@ class GameStateManager(BaseGameStateManager):
                     cfg.spawn_safe_radius if cfg else 80,
                 )
 
+        force_type: Optional[str] = None
+        if self.context.pop("pending_meteor_storm", False):
+            force_type = "meteor"
+            self.context["current_level_is_meteor"] = True
+
         level = create_level(
             level_number=level_number,
             config=cfg,
             window_width=w,
             window_height=h,
             snapshot=snapshot,
+            force_level_type=force_type,
         )
 
         self.context["current_level"] = level
@@ -177,9 +183,14 @@ class GameStateManager(BaseGameStateManager):
         level: Optional[BaseLevel] = self.context.get("current_level")
 
         if players and level is not None:
-            snapshot = level.to_snapshot()
-            snapshot.pop("projectiles", None)
-            players[idx].level_snapshot = snapshot
+            if level.level_type == "meteor":
+                # Meteor levels are not resumed after death — clear the flag
+                # so the next START_LEVEL creates a regular level instead.
+                self.context.pop("current_level_is_meteor", None)
+            else:
+                snapshot = level.to_snapshot()
+                snapshot.pop("projectiles", None)
+                players[idx].level_snapshot = snapshot
 
     def _handle_save_snapshot_and_switch(self) -> None:
         """Serialise level state for the active player, then switch."""

@@ -35,6 +35,9 @@ class SAPowerUpConfig(PowerUpConfigBase):
     # Constraint effect duration
     free_move_duration: float = 8.0
 
+    # Spawn interval divisor for meteor levels (>1 = more frequent)
+    meteor_spawn_interval_factor: float = 2.0
+
     # Pickup sprite scale (independent of global sprite_scale)
     powerups_scale: float = 1.0
 
