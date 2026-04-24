@@ -10,6 +10,7 @@ from typing import Optional
 from agf.background import BackgroundConfig
 from agf.config import BaseGameConfig, apply_argv_overrides, config_path
 
+from src.boss_config import BossConfig
 from src.diving_config import DivingConfig
 from src.enemy_config import EnemyConfig
 from src.meteor_config import MeteorConfig
@@ -30,6 +31,7 @@ def _config_path() -> Path:
 @dataclass
 class GameConfig(BaseGameConfig):
     spawn_safe_radius: int = 80
+    force_level_type: str = ""
     ship: ShipConfig = field(default_factory=ShipConfig)
     enemies: EnemyConfig = field(default_factory=EnemyConfig)
     background: BackgroundConfig = field(default_factory=BackgroundConfig)
@@ -38,6 +40,7 @@ class GameConfig(BaseGameConfig):
     diving: DivingConfig = field(default_factory=DivingConfig)
     powerups: SAPowerUpConfig = field(default_factory=SAPowerUpConfig)
     meteors: MeteorConfig = field(default_factory=MeteorConfig)
+    boss: BossConfig = field(default_factory=BossConfig)
 
     @classmethod
     def load(cls, path: Optional[Path] = None) -> "GameConfig":
@@ -319,10 +322,80 @@ class GameConfig(BaseGameConfig):
             points_small=int(me_raw.get("points_small", MeteorConfig.points_small)),
             points_tiny=int(me_raw.get("points_tiny", MeteorConfig.points_tiny)),
         )
+        bo_raw = data.get("boss", {})
+        bo = BossConfig(
+            boss_sprite=str(bo_raw.get("boss_sprite", BossConfig.boss_sprite)),
+            boss_scale_base=float(bo_raw.get("boss_scale_base", BossConfig.boss_scale_base)),
+            boss_scale_per_boss=float(
+                bo_raw.get("boss_scale_per_boss", BossConfig.boss_scale_per_boss)
+            ),
+            boss_hp_base=int(bo_raw.get("boss_hp_base", BossConfig.boss_hp_base)),
+            boss_hp_per_boss=int(bo_raw.get("boss_hp_per_boss", BossConfig.boss_hp_per_boss)),
+            boss_speed_base=float(bo_raw.get("boss_speed_base", BossConfig.boss_speed_base)),
+            boss_speed_per_boss=float(
+                bo_raw.get("boss_speed_per_boss", BossConfig.boss_speed_per_boss)
+            ),
+            boss_speed_max=float(bo_raw.get("boss_speed_max", BossConfig.boss_speed_max)),
+            boss_side_margin=float(bo_raw.get("boss_side_margin", BossConfig.boss_side_margin)),
+            boss_drop_distance=float(
+                bo_raw.get("boss_drop_distance", BossConfig.boss_drop_distance)
+            ),
+            boss_fire_interval_base=float(
+                bo_raw.get("boss_fire_interval_base", BossConfig.boss_fire_interval_base)
+            ),
+            boss_fire_interval_per_boss=float(
+                bo_raw.get("boss_fire_interval_per_boss", BossConfig.boss_fire_interval_per_boss)
+            ),
+            boss_fire_interval_min=float(
+                bo_raw.get("boss_fire_interval_min", BossConfig.boss_fire_interval_min)
+            ),
+            boss_bullet_speed=float(bo_raw.get("boss_bullet_speed", BossConfig.boss_bullet_speed)),
+            boss_bullet_damage=int(bo_raw.get("boss_bullet_damage", BossConfig.boss_bullet_damage)),
+            boss_spread_chance=float(
+                bo_raw.get("boss_spread_chance", BossConfig.boss_spread_chance)
+            ),
+            boss_spread_count=int(bo_raw.get("boss_spread_count", BossConfig.boss_spread_count)),
+            boss_spread_angle=float(bo_raw.get("boss_spread_angle", BossConfig.boss_spread_angle)),
+            boss_points_base=int(bo_raw.get("boss_points_base", BossConfig.boss_points_base)),
+            boss_points_per_boss=int(
+                bo_raw.get("boss_points_per_boss", BossConfig.boss_points_per_boss)
+            ),
+            boss_death_duration=float(
+                bo_raw.get("boss_death_duration", BossConfig.boss_death_duration)
+            ),
+            boss_death_explosion_count=int(
+                bo_raw.get("boss_death_explosion_count", BossConfig.boss_death_explosion_count)
+            ),
+            boss_death_particle_count=int(
+                bo_raw.get("boss_death_particle_count", BossConfig.boss_death_particle_count)
+            ),
+            boss_dive_group_size_max=int(
+                bo_raw.get("boss_dive_group_size_max", BossConfig.boss_dive_group_size_max)
+            ),
+            boss_dive_interval_base=float(
+                bo_raw.get("boss_dive_interval_base", BossConfig.boss_dive_interval_base)
+            ),
+            boss_dive_interval_min=float(
+                bo_raw.get("boss_dive_interval_min", BossConfig.boss_dive_interval_min)
+            ),
+            boss_diver_loop_count=int(
+                bo_raw.get("boss_diver_loop_count", BossConfig.boss_diver_loop_count)
+            ),
+            boss_pu_weight_shield=float(
+                bo_raw.get("boss_pu_weight_shield", BossConfig.boss_pu_weight_shield)
+            ),
+            boss_pu_weight_big_gun=float(
+                bo_raw.get("boss_pu_weight_big_gun", BossConfig.boss_pu_weight_big_gun)
+            ),
+            boss_pu_weight_spread_shot=float(
+                bo_raw.get("boss_pu_weight_spread_shot", BossConfig.boss_pu_weight_spread_shot)
+            ),
+        )
         result = cls(
             starting_level=int(game.get("starting_level", cls.starting_level)),
             num_lives=int(game.get("num_lives", cls.num_lives)),
             spawn_safe_radius=int(game.get("spawn_safe_radius", cls.spawn_safe_radius)),
+            force_level_type=str(game.get("force_level_type", "")),
             music_volume=int(game.get("music_volume", cls.music_volume)),
             effects_volume=int(game.get("effects_volume", cls.effects_volume)),
             debug=bool(game.get("debug", cls.debug)),
@@ -337,6 +410,7 @@ class GameConfig(BaseGameConfig):
             diving=dc,
             powerups=pu,
             meteors=mc,
+            boss=bo,
         )
         apply_argv_overrides(result)
         return result
@@ -357,6 +431,7 @@ class GameConfig(BaseGameConfig):
             f"god_mode = {'true' if self.god_mode else 'false'}\n",
             f"max_window_height = {self.max_window_height}\n",
             f"sprite_scale = {self.sprite_scale}\n",
+            f'force_level_type = "{self.force_level_type}"\n',
             "\n[ship]\n",
             f"ship_speed = {sc.ship_speed}\n",
             f"ship_accel = {sc.ship_accel}\n",
@@ -493,5 +568,39 @@ class GameConfig(BaseGameConfig):
             f"points_med = {me.points_med}\n",
             f"points_small = {me.points_small}\n",
             f"points_tiny = {me.points_tiny}\n",
+        ]
+        bo = self.boss
+        lines += [
+            "\n[boss]\n",
+            f'boss_sprite = "{bo.boss_sprite}"\n',
+            f"boss_scale_base = {bo.boss_scale_base}\n",
+            f"boss_scale_per_boss = {bo.boss_scale_per_boss}\n",
+            f"boss_hp_base = {bo.boss_hp_base}\n",
+            f"boss_hp_per_boss = {bo.boss_hp_per_boss}\n",
+            f"boss_speed_base = {bo.boss_speed_base}\n",
+            f"boss_speed_per_boss = {bo.boss_speed_per_boss}\n",
+            f"boss_speed_max = {bo.boss_speed_max}\n",
+            f"boss_side_margin = {bo.boss_side_margin}\n",
+            f"boss_drop_distance = {bo.boss_drop_distance}\n",
+            f"boss_fire_interval_base = {bo.boss_fire_interval_base}\n",
+            f"boss_fire_interval_per_boss = {bo.boss_fire_interval_per_boss}\n",
+            f"boss_fire_interval_min = {bo.boss_fire_interval_min}\n",
+            f"boss_bullet_speed = {bo.boss_bullet_speed}\n",
+            f"boss_bullet_damage = {bo.boss_bullet_damage}\n",
+            f"boss_spread_chance = {bo.boss_spread_chance}\n",
+            f"boss_spread_count = {bo.boss_spread_count}\n",
+            f"boss_spread_angle = {bo.boss_spread_angle}\n",
+            f"boss_points_base = {bo.boss_points_base}\n",
+            f"boss_points_per_boss = {bo.boss_points_per_boss}\n",
+            f"boss_death_duration = {bo.boss_death_duration}\n",
+            f"boss_death_explosion_count = {bo.boss_death_explosion_count}\n",
+            f"boss_death_particle_count = {bo.boss_death_particle_count}\n",
+            f"boss_dive_group_size_max = {bo.boss_dive_group_size_max}\n",
+            f"boss_dive_interval_base = {bo.boss_dive_interval_base}\n",
+            f"boss_dive_interval_min = {bo.boss_dive_interval_min}\n",
+            f"boss_diver_loop_count = {bo.boss_diver_loop_count}\n",
+            f"boss_pu_weight_shield = {bo.boss_pu_weight_shield}\n",
+            f"boss_pu_weight_big_gun = {bo.boss_pu_weight_big_gun}\n",
+            f"boss_pu_weight_spread_shot = {bo.boss_pu_weight_spread_shot}\n",
         ]
         path.write_text("".join(lines), encoding="utf-8")

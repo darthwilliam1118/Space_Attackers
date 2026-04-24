@@ -117,6 +117,7 @@ class GameStateManager(BaseGameStateManager):
             for i in range(num_players)
         ]
         self.context["active_player_index"] = 0
+        self.context.pop("any_level_started", None)
         self.transition(GameState.SET_ACTIVE_PLAYER)
 
     def _handle_set_active_player(self) -> None:
@@ -152,9 +153,19 @@ class GameStateManager(BaseGameStateManager):
                 )
 
         force_type: Optional[str] = None
-        if self.context.pop("pending_meteor_storm", False):
+        if self.context.pop("pending_boss", False):
+            force_type = "boss"
+            self.context["current_level_is_boss"] = True
+        elif self.context.pop("pending_meteor_storm", False):
             force_type = "meteor"
             self.context["current_level_is_meteor"] = True
+        if not force_type and cfg is not None and cfg.force_level_type:
+            force_type = cfg.force_level_type
+        # First level of the session uses standard type regardless of level number.
+        # Boss/meteor routing only applies once the player earns their way there.
+        if not force_type and not self.context.get("any_level_started"):
+            force_type = "standard"
+        self.context["any_level_started"] = True
 
         level = create_level(
             level_number=level_number,

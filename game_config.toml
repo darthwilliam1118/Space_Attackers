@@ -8,6 +8,7 @@ debug = false
 god_mode = false
 max_window_height = 1000
 sprite_scale = 0.5
+force_level_type = ""
 
 [ship]
 ship_speed = 300.0
@@ -133,3 +134,35 @@ points_large = 200
 points_med = 100
 points_small = 50
 points_tiny = 25
+
+[boss]
+boss_sprite = "assets/images/PNG/Enemies/enemyBlackBoss.png"
+boss_scale_base = 5.0
+boss_scale_per_boss = 0.0
+boss_hp_base = 10000
+boss_hp_per_boss = 2000
+boss_speed_base = 100.0
+boss_speed_per_boss = 8.0
+boss_speed_max = 300.0
+boss_side_margin = 40.0
+boss_drop_distance = 96.0
+boss_fire_interval_base = 1.2
+boss_fire_interval_per_boss = -0.08
+boss_fire_interval_min = 0.35
+boss_bullet_speed = 280.0
+boss_bullet_damage = 1
+boss_spread_chance = 0.25
+boss_spread_count = 5
+boss_spread_angle = 30.0
+boss_points_base = 1000
+boss_points_per_boss = 500
+boss_death_duration = 2.5
+boss_death_explosion_count = 8
+boss_death_particle_count = 60
+boss_dive_group_size_max = 2
+boss_dive_interval_base = 8.0
+boss_dive_interval_min = 4.0
+boss_diver_loop_count = 3
+boss_pu_weight_shield = 8.0
+boss_pu_weight_big_gun = 10.0
+boss_pu_weight_spread_shot = 10.0

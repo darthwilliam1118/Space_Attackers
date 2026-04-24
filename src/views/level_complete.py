@@ -23,18 +23,25 @@ class LevelCompleteView(_LevelCompleteViewBase):
         players = self._manager.context.get("players", [])
         idx = self._manager.context.get("active_player_index", 0)
         is_meteor = self._manager.context.get("current_level_is_meteor", False)
+        is_boss = self._manager.context.get("current_level_is_boss", False)
         if players:
             player = players[idx]
             player.score += _LEVEL_BONUS
-            if not is_meteor:
+            if not is_meteor and not is_boss:
                 old_level = player.current_level
                 player.current_level += 1
-                if old_level % 3 == 0:
+                if old_level % 5 == 0:
+                    # Boss beats meteor when both would fire (e.g. level 15)
+                    self._manager.context["pending_boss"] = True
+                elif old_level % 3 == 0:
                     self._manager.context["pending_meteor_storm"] = True
             player.level_snapshot = None
         self._manager.context.pop("current_level_is_meteor", None)
+        self._manager.context.pop("current_level_is_boss", None)
 
     def build_bonus_text(self) -> str:
+        if self._manager.context.get("current_level_is_boss", False):
+            return f"BOSS DEFEATED    Bonus: +{_LEVEL_BONUS}"
         if self._manager.context.get("current_level_is_meteor", False):
             return f"METEOR STORM    Bonus: +{_LEVEL_BONUS}"
         players = self._manager.context.get("players", [])

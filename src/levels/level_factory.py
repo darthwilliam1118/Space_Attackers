@@ -34,12 +34,10 @@ def create_level(
 
 
 def _get_level_type(level_number: int) -> str:
-    """Define the level sequence.
+    """All regular levels are standard.
 
-    All levels are standard for now. Extend here when new level
-    types are added:
-      if level_number % 10 == 0: return "boss"
-      if level_number % 5 == 0: return "bonus"
+    Boss and meteor levels are inserted between standard levels via
+    pending_boss / pending_meteor_storm context flags set in LevelCompleteView.
     """
     return "standard"
 
@@ -110,6 +108,38 @@ def _create_fresh(
             level.setup(level_number)
             return level
 
+        case "boss":
+            from src.boss_config import BossConfig
+            from src.diving_config import DivingConfig
+            from src.levels.boss_level import BossLevel
+            from src.powerups.sa_manager import SAPowerUpManager
+
+            boss_cfg = config.boss if config else BossConfig()
+            diving_cfg = config.diving if config else DivingConfig()
+            enemy_cfg = config.enemies if config else None
+            debug = config.debug if config else False
+            scale = config.sprite_scale if config else 1.0
+            hp_dur = config.ui.hp_bar_duration if config else 1.0
+            pu_cfg = getattr(config, "powerups", None) if config else None
+            player_pu_manager = (
+                SAPowerUpManager(pu_cfg, window_width, window_height, sprite_scale=scale)
+                if pu_cfg is not None
+                else None
+            )
+            level = BossLevel(
+                boss_cfg,
+                diving_cfg,
+                window_width,
+                window_height,
+                player_pu_manager,
+                debug,
+                scale,
+                hp_dur,
+                enemy_cfg=enemy_cfg,
+            )
+            level.setup(level_number)
+            return level
+
         case _:
             raise ValueError(f"Unknown level type: {level_type!r}")
 
@@ -132,5 +162,10 @@ def _restore_from_snapshot(
             from src.levels.meteor_level import MeteorLevel
 
             return MeteorLevel.from_snapshot(snapshot, config, window_width, window_height)
+        case "boss":
+            from src.levels.boss_level import BossLevel
+
+            return BossLevel.from_snapshot(snapshot, config, window_width, window_height)
+
         case _:
             raise ValueError(f"Cannot restore unknown level type: {level_type!r}")

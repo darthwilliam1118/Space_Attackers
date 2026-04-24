@@ -26,7 +26,9 @@
       "Bash(venv/Scripts/python.exe -m pytest tests/ --tb=short -q)",
       "Bash(venv/Scripts/python.exe -m pytest tests/ -q)",
       "Bash(grep -v \"^$\\\\|reformatted\\\\|All done\\\\|unchanged\\\\|Oh no\")",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(grep -E \"\\\\.py$\")",
+      "Read(//c/Users/darth/Code/**)"
     ],
     "additionalDirectories": [
       "C:\\Users\\darth\\Code\\arcade-game-framework"

@@ -61,18 +61,12 @@ def _make_standard(cols: int = 3, rows: int = 2, level: int = 1) -> StandardLeve
 
 
 class TestGetLevelType:
-    def test_returns_standard_for_level_1(self) -> None:
-        assert _get_level_type(1) == "standard"
-
-    def test_returns_standard_for_level_10(self) -> None:
-        assert _get_level_type(10) == "standard"
-
-    def test_returns_standard_for_level_20(self) -> None:
-        assert _get_level_type(20) == "standard"
-
-    def test_returns_standard_for_all_levels_1_to_20(self) -> None:
-        for n in range(1, 21):
-            assert _get_level_type(n) == "standard"
+    # _get_level_type always returns "standard" — boss/meteor are inserted
+    # between standard levels via pending_boss / pending_meteor_storm context
+    # flags set in LevelCompleteView, not by routing on level number.
+    def test_always_returns_standard(self) -> None:
+        for n in [1, 2, 3, 4, 5, 6, 9, 10, 15, 20, 21, 25, 30]:
+            assert _get_level_type(n) == "standard", f"level {n} should be standard"
 
 
 # ---------------------------------------------------------------------------
@@ -83,7 +77,13 @@ class TestGetLevelType:
 class TestCreateFresh:
     def test_unknown_level_type_raises(self) -> None:
         with pytest.raises(ValueError, match="Unknown level type"):
-            _create_fresh("boss", 1, None, W, H)
+            _create_fresh("unknown_xyz", 1, None, W, H)
+
+    def test_boss_level_type_returns_boss_level(self) -> None:
+        from src.levels.boss_level import BossLevel
+
+        result = _create_fresh("boss", 5, None, W, H)
+        assert isinstance(result, BossLevel)
 
     def test_standard_returns_standard_level(self) -> None:
         result = _create_fresh("standard", 1, None, W, H)
@@ -123,9 +123,16 @@ class TestCreateLevel:
         assert snap["level_type"] == "standard"
 
     def test_unknown_snapshot_type_raises(self) -> None:
-        snap = {"level_type": "boss"}
+        snap = {"level_type": "unknown_xyz"}
         with pytest.raises(ValueError, match="Cannot restore unknown level type"):
             create_level(1, None, W, H, snapshot=snap)
+
+    def test_boss_snapshot_returns_boss_level(self) -> None:
+        from src.levels.boss_level import BossLevel
+
+        snap = {"level_type": "boss", "boss": {"encounter": 1}}
+        result = create_level(1, None, W, H, snapshot=snap)
+        assert isinstance(result, BossLevel)
 
 
 # ---------------------------------------------------------------------------

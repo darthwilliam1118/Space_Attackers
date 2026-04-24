@@ -290,7 +290,9 @@ class RunLevelView(arcade.View):
             players = ctx.get("players", [])
             idx = ctx.get("active_player_index", 0)
             is_meteor = ctx.get("current_level_is_meteor", False)
-            level_display = -1 if is_meteor else (players[idx].current_level if players else 1)
+            is_boss = ctx.get("current_level_is_boss", False)
+            current = players[idx].current_level if players else 1
+            level_display = -1 if (is_meteor or is_boss) else current
             manager = self._level.get_powerup_manager() if self._level is not None else None
             active_effects = manager.get_active_effects() if manager is not None else []
             self._hud.update(players, idx, level_display, active_effects)
@@ -437,7 +439,16 @@ class RunLevelView(arcade.View):
             if event == GameEvent.POWERUP_COLLECTED:
                 if self._snd_powerup_pickup is not None:
                     arcade.play_sound(self._snd_powerup_pickup, volume=self._sfx_volume())
-            elif event in (GameEvent.LEVEL_COMPLETE, GameEvent.ENEMY_DESTROYED):
+            elif event == GameEvent.ENEMY_DESTROYED:
+                # Boss kill — spawn a large particle burst at boss death position
+                if self._level is not None and hasattr(self._level, "get_boss_death_center"):
+                    pos = self._level.get_boss_death_center()
+                    if pos is not None:
+                        self.spawn_destruction_effect(pos[0], pos[1])
+                if self._level is not None and self._level.is_cleared():
+                    self._level_cleared = True
+                    return
+            elif event == GameEvent.LEVEL_COMPLETE:
                 if self._level is not None and self._level.is_cleared():
                     self._level_cleared = True
                     return
@@ -477,6 +488,7 @@ class RunLevelView(arcade.View):
         self._player_bullets.draw()
         if not self._paused:
             self._draw_enemy_hp_bars()
+            self._draw_boss_hp_bar()
             self._draw_player_hp_bar()
         self._ship_list.draw()
         if self._shield_sprite_ref is not None:
@@ -512,6 +524,21 @@ class RunLevelView(arcade.View):
 
         if self._debug and key == arcade.key.E and (modifiers & arcade.key.MOD_SHIFT):
             self._manager.transition(GameState.LEVEL_COMPLETE)
+            return
+
+        if self._debug and key == arcade.key.B and (modifiers & arcade.key.MOD_SHIFT):
+            from src.levels.level_factory import create_level
+
+            cfg = self._manager.context.get("config")
+            level_number = self._manager.context.get("level_number", 5)
+            self._level = create_level(
+                level_number,
+                cfg,
+                self.window.width,
+                self.window.height,
+                force_level_type="boss",
+            )
+            self._manager.context["current_level"] = self._level
             return
 
         if (
@@ -723,6 +750,28 @@ class RunLevelView(arcade.View):
                     bar_h,
                     fill_color,
                 )
+
+    def _draw_boss_hp_bar(self) -> None:
+        """Draw the boss HP bar directly below the boss sprite."""
+        if self._level is None:
+            return
+        data = getattr(self._level, "get_boss_hp_bar_data", lambda: None)()
+        if data is None:
+            return
+        cx, bar_y, bar_width, hp, max_hp = data
+        pct = hp / max_hp if max_hp > 0 else 0.0
+        filled = bar_width * pct
+        arcade.draw_lrbt_rectangle_filled(
+            cx - bar_width / 2, cx + bar_width / 2, bar_y - 4, bar_y + 4, (80, 0, 0, 200)
+        )
+        if filled > 0:
+            arcade.draw_lrbt_rectangle_filled(
+                cx - bar_width / 2,
+                cx - bar_width / 2 + filled,
+                bar_y - 4,
+                bar_y + 4,
+                (220, 40, 40, 255),
+            )
 
     def _draw_player_hp_bar(self) -> None:
         """Draw the player HP bar at the bottom-centre of the screen."""
