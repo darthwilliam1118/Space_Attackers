@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
+import arcade
+from agf.paths import resource_path
 from agf.views.level_complete import LevelCompleteView as _LevelCompleteViewBase
 
 if TYPE_CHECKING:
     from src.state import GameStateManager
 
 _LEVEL_BONUS = 1000
+_EXTRA_LIFE_INTERVAL = 10_000
+_SND_EXTRA_LIFE = "assets/sounds/extraLife.ogg"
 
 
 class LevelCompleteView(_LevelCompleteViewBase):
@@ -17,6 +21,9 @@ class LevelCompleteView(_LevelCompleteViewBase):
 
     def __init__(self, manager: "GameStateManager") -> None:
         self._manager = manager
+        self._snd_extra_life: Optional[arcade.Sound] = arcade.load_sound(
+            resource_path(_SND_EXTRA_LIFE)
+        )
         super().__init__(on_complete=self._advance)
 
     def apply_bonus(self) -> None:
@@ -26,7 +33,13 @@ class LevelCompleteView(_LevelCompleteViewBase):
         is_boss = self._manager.context.get("current_level_is_boss", False)
         if players:
             player = players[idx]
+            old_milestones = player.score // _EXTRA_LIFE_INTERVAL
             player.score += _LEVEL_BONUS
+            earned = player.score // _EXTRA_LIFE_INTERVAL - old_milestones
+            for _ in range(earned):
+                player.lives += 1
+                if self._snd_extra_life is not None:
+                    arcade.play_sound(self._snd_extra_life)
             if not is_meteor and not is_boss:
                 old_level = player.current_level
                 player.current_level += 1

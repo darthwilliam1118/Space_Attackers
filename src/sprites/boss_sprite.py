@@ -54,13 +54,14 @@ class BossSprite(arcade.Sprite):
         self.hit_points: int = config.boss_hp_base + config.boss_hp_per_boss * (encounter - 1)
         self.max_hit_points: int = self.hit_points
 
-        # Movement — start moving right
+        # Movement — start moving right, descending on each wall bounce
         speed = min(
             config.boss_speed_base + config.boss_speed_per_boss * (encounter - 1),
             config.boss_speed_max,
         )
         self._vx: float = speed
         self._vy: float = 0.0
+        self._drop_direction: int = -1  # -1 = descending, +1 = ascending
 
         # Fire timer
         interval = max(
@@ -112,11 +113,11 @@ class BossSprite(arcade.Sprite):
         if self._vx > 0 and self.center_x >= right_limit:
             self.center_x = right_limit
             self._vx = -self._vx
-            self.center_y -= cfg.boss_drop_distance
+            self.center_y += cfg.boss_drop_distance * self._drop_direction
         elif self._vx < 0 and self.center_x <= left_limit:
             self.center_x = left_limit
             self._vx = -self._vx
-            self.center_y -= cfg.boss_drop_distance
+            self.center_y += cfg.boss_drop_distance * self._drop_direction
 
     def _tick_fire(self, delta_time: float) -> None:
         self._fire_timer -= delta_time
@@ -192,11 +193,15 @@ class BossSprite(arcade.Sprite):
         self._pending_non_lethal.clear()
         return hits
 
-    def record_hit(self, lethal: bool) -> None:
+    def record_hit(
+        self, lethal: bool, hit_x: Optional[float] = None, hit_y: Optional[float] = None
+    ) -> None:
+        x = hit_x if hit_x is not None else self.center_x
+        y = hit_y if hit_y is not None else self.center_y
         if lethal:
             self._pending_hits.append((self.center_x, self.center_y, self._points))
         else:
-            self._pending_non_lethal.append((self.center_x, self.center_y))
+            self._pending_non_lethal.append((x, y))
 
     # ------------------------------------------------------------------
     # Queries
@@ -209,3 +214,14 @@ class BossSprite(arcade.Sprite):
     def reaches_bottom(self, ship_zone_top: float) -> bool:
         """True if the boss bottom edge enters the player's movement zone."""
         return (self.center_y - self.height / 2.0) <= ship_zone_top
+
+    def check_vertical_boundary(self, ship_zone_top: float) -> None:
+        """Reverse vertical drop direction when the boss hits the bottom or top margin."""
+        half_h = self.height / 2.0
+        top_clamp = self._window_height - self._config.boss_side_margin - half_h
+        if self._drop_direction < 0 and self.center_y - half_h <= ship_zone_top:
+            self.center_y = ship_zone_top + half_h
+            self._drop_direction = 1
+        elif self._drop_direction > 0 and self.center_y >= top_clamp:
+            self.center_y = top_clamp
+            self._drop_direction = -1

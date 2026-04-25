@@ -28,6 +28,8 @@ _SND_PLAYER_KILLED = "assets/sounds/explosionCrunch_004.ogg"
 _SND_ENEMY_SHOOT = "assets/sounds/laserLarge_000.ogg"
 _SND_PLAYER_SHOOT = "assets/sounds/laserSmall_000.ogg"
 _SND_POWERUP_PICKUP = "assets/sounds/laserSmall_001.ogg"
+_SND_EXTRA_LIFE = "assets/sounds/extraLife.ogg"
+_EXTRA_LIFE_INTERVAL = 10_000
 
 
 class RunLevelView(arcade.View):
@@ -81,6 +83,7 @@ class RunLevelView(arcade.View):
         self._snd_enemy_shoot: Optional[arcade.Sound] = None
         self._snd_player_shoot: Optional[arcade.Sound] = None
         self._snd_powerup_pickup: Optional[arcade.Sound] = None
+        self._snd_extra_life: Optional[arcade.Sound] = None
 
         self._shield_sprite_ref: Optional[arcade.Sprite] = None
         self._overlay_list: arcade.SpriteList = arcade.SpriteList()
@@ -136,6 +139,7 @@ class RunLevelView(arcade.View):
         self._snd_enemy_shoot = arcade.load_sound(resource_path(_SND_ENEMY_SHOOT))
         self._snd_player_shoot = arcade.load_sound(resource_path(_SND_PLAYER_SHOOT))
         self._snd_powerup_pickup = arcade.load_sound(resource_path(_SND_POWERUP_PICKUP))
+        self._snd_extra_life = arcade.load_sound(resource_path(_SND_EXTRA_LIFE))
 
     # ------------------------------------------------------------------
     # Arcade callbacks
@@ -412,6 +416,27 @@ class RunLevelView(arcade.View):
 
         for hit_x, hit_y in self._level.consume_pending_non_lethal_hits():
             self._spawn_hit_ring(hit_x, hit_y)
+
+        if hasattr(self._level, "consume_pending_boss_non_lethal_hits"):
+            from typing import cast as _cast
+
+            from src.levels.boss_level import BossLevel as _BossLevel
+
+            _boss_level = _cast(_BossLevel, self._level)
+            for hit_x, hit_y in _boss_level.consume_pending_boss_non_lethal_hits():
+                _cfg = self._manager.context.get("config")
+                _vx, _vy = self._level.velocity
+                exp = ExplosionSprite(
+                    x=hit_x,
+                    y=hit_y,
+                    frame_duration=0.05,
+                    vx=_vx,
+                    vy=_vy,
+                    scale=_cfg.sprite_scale if _cfg is not None else 1.0,
+                )
+                self._explosions.append(exp)
+                if self._snd_enemy_killed is not None:
+                    arcade.play_sound(self._snd_enemy_killed, volume=self._sfx_volume())
 
         if self._ship.hit_points < ship_hp_before and GameEvent.PLAYER_KILLED not in events:
             self._spawn_hit_ring(self._ship.center_x, self._ship.center_y)
@@ -817,4 +842,11 @@ class RunLevelView(arcade.View):
         players = self._manager.context.get("players", [])
         idx = self._manager.context.get("active_player_index", 0)
         if players:
-            players[idx].score += points
+            player = players[idx]
+            old_milestones = player.score // _EXTRA_LIFE_INTERVAL
+            player.score += points
+            earned = player.score // _EXTRA_LIFE_INTERVAL - old_milestones
+            for _ in range(earned):
+                player.lives += 1
+                if self._snd_extra_life is not None:
+                    arcade.play_sound(self._snd_extra_life, volume=self._sfx_volume())

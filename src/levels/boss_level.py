@@ -85,59 +85,76 @@ class BossDiveController(DiveController):
     ) -> list[GameEvent]:
         from src.sprites.diving_ship import DiveState
 
-        # Snapshot ships in DONE state before calling super() so we can
-        # detect which completed their path and might need re-launching.
-        pre_done: dict[int, tuple[int, tuple[str, int]]] = {}
-        for ship in self._active_ships:
-            if ship._state == DiveState.DONE:
-                ship_id = id(ship)
-                pre_done[ship_id] = (
-                    self._loops_remaining.get(ship_id, 0),
-                    self._source_color_type.get(ship_id, ("Black", 1)),
-                )
+        was_blocked = self.new_dive_launches_blocked
+        player_x = player_ship.center_x if player_ship else self._window_width / 2
 
-        # Update boss divers' home position to follow the boss (RETURNING phase).
+        # Update home position for returning divers so they track the moving boss.
         for ship in self._active_ships:
             if ship._state == DiveState.RETURNING:
                 ship._home_x = self._boss.center_x
                 ship._home_y = self._boss.center_y
 
         # Block parent's launch-timer block entirely — we handle it ourselves.
-        was_blocked = self.new_dive_launches_blocked
         self.new_dive_launches_blocked = True
         events = super().update(delta_time, None, player_ship, player_bullets)
         self.new_dive_launches_blocked = was_blocked
 
-        # Clean up tracking for completed/re-launched ships.
-        for ship_id in pre_done:
-            self._loops_remaining.pop(ship_id, None)
-            self._source_color_type.pop(ship_id, None)
-
-        # Re-launch divers with loops remaining.
         if not was_blocked and self._boss.hit_points > 0:
-            player_x = player_ship.center_x if player_ship else self._window_width / 2
-            for _ship_id, (loops_left, (color, ship_type)) in pre_done.items():
-                if loops_left > 0:
-                    self._launch_single_diver(color, ship_type, player_x, loops_left - 1)
+            # Re-launch: detect ships first entering RETURNING state after super() ran.
+            # super() transitions DIVING→RETURNING inside ship.update() and leaves
+            # them in _active_ships; they are only removed one frame later when DONE.
+            # Popping from _loops_remaining on first detection ensures one re-launch
+            # per ship, not one per RETURNING frame.
+            for ship in self._active_ships:
+                if ship._state == DiveState.RETURNING:
+                    ship_id = id(ship)
+                    if ship_id in self._loops_remaining:
+                        loops_left = self._loops_remaining.pop(ship_id)
+                        color, ship_type = self._source_color_type.pop(
+                            ship_id, ("Black", 1)
+                        )
+                        if loops_left > 0:
+                            self._launch_single_diver(
+                                color, ship_type, player_x, loops_left - 1
+                            )
+
+        # Clean up stale tracking for ships killed mid-dive (never entered RETURNING).
+        active_ids = {id(s) for s in self._active_ships}
+        for sid in list(self._loops_remaining):
+            if sid not in active_ids:
+                self._loops_remaining.pop(sid)
+                self._source_color_type.pop(sid, None)
 
         # Our own launch timer (parent's timer is disabled via new_dive_launches_blocked).
         if not was_blocked and self._boss.hit_points > 0:
             self._dive_timer -= delta_time
             if self._dive_timer <= 0.0:
                 self._dive_timer = self._boss_cfg.boss_dive_interval_base
-                player_x = player_ship.center_x if player_ship else self._window_width / 2
                 self._launch_boss_group(player_x)
 
         return events
 
     def _launch_boss_group(self, player_x: float) -> None:
-        count = random.randint(1, self._boss_cfg.boss_dive_group_size_max)
+        from src.sprites.enemy_sprite import EnemySprite
+
+        count = self._boss_cfg.boss_dive_group_size_max
         colors = ["Black", "Blue", "Green", "Red"]
-        for _ in range(count):
-            color = random.choice(colors)
-            ship_type = random.randint(1, 4)
+        group = [(random.choice(colors), random.randint(1, 4)) for _ in range(count)]
+
+        # Measure one diver sprite to compute row width, then centre on boss x.
+        c0, t0 = group[0]
+        diver_w = EnemySprite(c0, t0, col=0, row=0, scale=self._sprite_scale).width
+        start_x = self._boss.center_x - count * diver_w / 2.0 + diver_w / 2.0
+        spawn_y = self._boss.center_y
+
+        for i, (color, ship_type) in enumerate(group):
             self._launch_single_diver(
-                color, ship_type, player_x, self._boss_cfg.boss_diver_loop_count
+                color,
+                ship_type,
+                player_x,
+                self._boss_cfg.boss_diver_loop_count - 1,
+                spawn_x=start_x + i * diver_w,
+                spawn_y=spawn_y,
             )
 
     def _launch_single_diver(
@@ -146,13 +163,21 @@ class BossDiveController(DiveController):
         ship_type: int,
         player_x: float,
         loops_remaining: int,
+        spawn_x: Optional[float] = None,
+        spawn_y: Optional[float] = None,
     ) -> None:
         from src.dive_path import make_dive_path
         from src.sprites.diving_ship import DivingShip
         from src.sprites.enemy_sprite import EnemySprite
 
-        x = self._boss.center_x + random.uniform(-self._boss.width / 4.0, self._boss.width / 4.0)
-        y = self._boss.center_y
+        if spawn_x is not None:
+            x = spawn_x
+            y = spawn_y if spawn_y is not None else self._boss.center_y
+        else:
+            x = self._boss.center_x + random.uniform(
+                -self._boss.width / 4.0, self._boss.width / 4.0
+            )
+            y = self._boss.center_y
 
         source = EnemySprite(color, ship_type, col=0, row=0, scale=self._sprite_scale)
         source.center_x = x
@@ -372,22 +397,21 @@ class BossLevel(BaseLevel):
                         events.append(GameEvent.ENEMY_DESTROYED)
                         return events
                     else:
-                        self._boss.record_hit(lethal=False)
+                        self._boss.record_hit(
+                            lethal=False, hit_x=bullet.center_x, hit_y=bullet.center_y
+                        )
 
         # Dive controller
         if self._dive_ctrl is not None:
             dive_events = self._dive_ctrl.update(delta_time, None, player_ship, bullets)
             events += dive_events
 
-        # Boss reaches bottom — player killed
-        if player_ship is not None:
-            zone_top_pct = getattr(
-                getattr(player_ship, "_config", None), "ship_zone_height_pct", 0.33
-            )
-            ship_zone_top = self._h * zone_top_pct
-            if self._boss.reaches_bottom(ship_zone_top):
-                events.append(GameEvent.PLAYER_KILLED)
-                return events
+        # Boss hits bottom or top margin — reverse vertical direction
+        zone_top_pct = getattr(
+            getattr(player_ship, "_config", None), "ship_zone_height_pct", 0.33
+        )
+        ship_zone_top = self._h * zone_top_pct
+        self._boss.check_vertical_boundary(ship_zone_top)
 
         # Boss power-ups
         if self._boss_powerup_manager is not None and self._boss is not None:
@@ -515,9 +539,12 @@ class BossLevel(BaseLevel):
     def consume_pending_non_lethal_hits(self) -> list[tuple[float, float]]:
         hits = list(self._pending_non_lethal)
         self._pending_non_lethal.clear()
-        if self._boss is not None:
-            hits += self._boss.consume_pending_non_lethal_hits()
         return hits
+
+    def consume_pending_boss_non_lethal_hits(self) -> list[tuple[float, float]]:
+        if self._boss is not None:
+            return self._boss.consume_pending_non_lethal_hits()
+        return []
 
     # ------------------------------------------------------------------
     # Sprite lists

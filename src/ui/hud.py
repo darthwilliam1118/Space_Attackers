@@ -263,7 +263,7 @@ class HUD(HUDBase):
                 self._last_level = level
             if p.lives != self._last_lives[0]:
                 self._last_lives[0] = p.lives
-                self._set_icon_count(self._p1_icon_list, p.lives)
+                self._set_icon_count(self._p1_icon_list, p.lives - 1)
         else:
             # Resolve P1 and P2 objects (may not always be index 0/1)
             p1 = next((p for p in player_states if p.player_num == 1), None)
@@ -279,7 +279,7 @@ class HUD(HUDBase):
                     self._last_scores[0] = p1.score
                 if p1.lives != self._last_lives[0]:
                     self._last_lives[0] = p1.lives
-                    self._set_icon_count(self._p1_icon_list, p1.lives)
+                    self._set_icon_count(self._p1_icon_list, p1.lives - 1)
 
             if p2 is not None:
                 c2 = _WHITE if active_num == 2 else _MUTED
@@ -290,7 +290,7 @@ class HUD(HUDBase):
                     self._last_scores[1] = p2.score
                 if p2.lives != self._last_lives[1]:
                     self._last_lives[1] = p2.lives
-                    self._set_icon_count(self._p2_icon_list, p2.lives)
+                    self._set_icon_count(self._p2_icon_list, p2.lives - 1)
 
             if level != self._last_level:
                 self._level.text = "METEOR STORM" if level < 0 else f"LEVEL: {level}"
