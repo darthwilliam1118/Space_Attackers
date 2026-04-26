@@ -296,7 +296,7 @@ class RunLevelView(arcade.View):
             is_meteor = ctx.get("current_level_is_meteor", False)
             is_boss = ctx.get("current_level_is_boss", False)
             current = players[idx].current_level if players else 1
-            level_display = -1 if (is_meteor or is_boss) else current
+            level_display = -2 if is_boss else (-1 if is_meteor else current)
             manager = self._level.get_powerup_manager() if self._level is not None else None
             active_effects = manager.get_active_effects() if manager is not None else []
             self._hud.update(players, idx, level_display, active_effects)

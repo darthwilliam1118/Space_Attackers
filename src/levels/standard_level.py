@@ -209,6 +209,8 @@ class StandardLevel(BaseLevel):
             hp_bar_duration=hp_dur,
         )
 
+        level_number = snapshot.get("diving", {}).get("level", 1)
+
         powerup_manager: Optional[SAPowerUpManager] = None
         if config is not None and getattr(config, "powerups", None) is not None:
             pu_snapshot = snapshot.get("powerups")
@@ -219,7 +221,7 @@ class StandardLevel(BaseLevel):
                     window_width,
                     window_height,
                     sprite_scale=scale,
-                    level_number=1,
+                    level_number=level_number,
                     level_type="standard",
                 )
             else:
@@ -229,7 +231,7 @@ class StandardLevel(BaseLevel):
                     window_height,
                     sprite_scale=scale,
                 )
-                powerup_manager.setup(1, "standard")
+                powerup_manager.setup(level_number, "standard")
 
         return cls(grid, dive_ctrl, powerup_manager)
 

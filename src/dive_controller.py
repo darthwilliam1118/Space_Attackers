@@ -257,7 +257,8 @@ class DiveController:
                     if ship in self._active_ships:
                         self._active_ships.remove(ship)
                     self._source_map.pop(id(ship), None)
-                events.append(GameEvent.PLAYER_KILLED)
+                if player_ship.take_damage(player_ship.hit_points):
+                    events.append(GameEvent.PLAYER_KILLED)
 
         # Check dive bombs vs player ship
         if player_ship is not None and not player_ship.is_invincible():
@@ -265,7 +266,8 @@ class DiveController:
             if hits:
                 for bomb in hits:
                     bomb.remove_from_sprite_lists()
-                events.append(GameEvent.PLAYER_KILLED)
+                if player_ship.take_damage(player_ship.hit_points):
+                    events.append(GameEvent.PLAYER_KILLED)
 
         return events
 

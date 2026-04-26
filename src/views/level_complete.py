@@ -49,6 +49,7 @@ class LevelCompleteView(_LevelCompleteViewBase):
                 elif old_level % 3 == 0:
                     self._manager.context["pending_meteor_storm"] = True
             player.level_snapshot = None
+            player.current_hp = None  # next level always starts at full HP
         self._manager.context.pop("current_level_is_meteor", None)
         self._manager.context.pop("current_level_is_boss", None)
 

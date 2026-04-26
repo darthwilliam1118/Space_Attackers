@@ -109,6 +109,8 @@ class SAPowerUpManager(PowerUpManager):
                 if existing.effect_type == effect.effect_type:
                     extra = getattr(effect, "_duration", 0.0)
                     existing._elapsed = max(0.0, existing._elapsed - extra)  # type: ignore[attr-defined]
+                    if isinstance(existing, ShieldEffect):
+                        existing._hits_remaining = existing._max_hits
                     return
         super()._add_effect(effect, ship, context)
 

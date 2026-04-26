@@ -110,13 +110,9 @@ class BossDiveController(DiveController):
                     ship_id = id(ship)
                     if ship_id in self._loops_remaining:
                         loops_left = self._loops_remaining.pop(ship_id)
-                        color, ship_type = self._source_color_type.pop(
-                            ship_id, ("Black", 1)
-                        )
+                        color, ship_type = self._source_color_type.pop(ship_id, ("Black", 1))
                         if loops_left > 0:
-                            self._launch_single_diver(
-                                color, ship_type, player_x, loops_left - 1
-                            )
+                            self._launch_single_diver(color, ship_type, player_x, loops_left - 1)
 
         # Clean up stale tracking for ships killed mid-dive (never entered RETURNING).
         active_ids = {id(s) for s in self._active_ships}
@@ -378,7 +374,8 @@ class BossLevel(BaseLevel):
         # Direct contact: boss body vs player ship
         if player_ship is not None and not player_ship.is_invincible():
             if arcade.check_for_collision(player_ship, self._boss):
-                events.append(GameEvent.PLAYER_KILLED)
+                if player_ship.take_damage(player_ship.hit_points):
+                    events.append(GameEvent.PLAYER_KILLED)
                 return events
 
         # Player bullets vs boss
@@ -407,9 +404,7 @@ class BossLevel(BaseLevel):
             events += dive_events
 
         # Boss hits bottom or top margin — reverse vertical direction
-        zone_top_pct = getattr(
-            getattr(player_ship, "_config", None), "ship_zone_height_pct", 0.33
-        )
+        zone_top_pct = getattr(getattr(player_ship, "_config", None), "ship_zone_height_pct", 0.33)
         ship_zone_top = self._h * zone_top_pct
         self._boss.check_vertical_boundary(ship_zone_top)
 
@@ -653,6 +648,10 @@ class BossLevel(BaseLevel):
         scale = config.sprite_scale if config else 1.0
         hp_dur = config.ui.hp_bar_duration if config else 1.0
 
+        boss_snap = snapshot.get("boss", {})
+        encounter = boss_snap.get("encounter", 1)
+        level_number = encounter * 5
+
         powerup_manager = None
         pu_cfg = getattr(config, "powerups", None) if config else None
         if pu_cfg is not None:
@@ -666,12 +665,14 @@ class BossLevel(BaseLevel):
                     window_width,
                     window_height,
                     sprite_scale=scale,
+                    level_number=level_number,
                     level_type="boss",
                 )
             else:
                 powerup_manager = SAPowerUpManager(
                     pu_cfg, window_width, window_height, sprite_scale=scale
                 )
+                powerup_manager.setup(level_number, "boss")
 
         level = cls(
             boss_cfg,
@@ -685,8 +686,6 @@ class BossLevel(BaseLevel):
             enemy_cfg=enemy_cfg,
         )
 
-        boss_snap = snapshot.get("boss", {})
-        encounter = boss_snap.get("encounter", 1)
         level._encounter = encounter
         level._boss = BossSprite(boss_cfg, encounter, window_width, window_height, scale)
         level._boss.center_x = boss_snap.get("center_x", window_width / 2)
@@ -695,5 +694,35 @@ class BossLevel(BaseLevel):
         level._boss.hit_points = boss_snap.get("hp", level._boss.max_hit_points)
         level._boss_list = arcade.SpriteList()
         level._boss_list.append(level._boss)
+
+        # Restore dive controller
+        dive_snap = snapshot.get("diving")
+        level._dive_ctrl = BossDiveController(
+            boss_cfg=boss_cfg,
+            diving_cfg=diving_cfg,
+            boss_sprite=level._boss,
+            window_width=window_width,
+            window_height=window_height,
+            debug=debug,
+            sprite_scale=scale,
+            hp_bar_duration=hp_dur,
+            enemy_cfg=enemy_cfg,
+        )
+        if dive_snap:
+            level._dive_ctrl.setup(dive_snap["level"])
+            level._dive_ctrl._dive_timer = dive_snap.get(
+                "dive_timer", boss_cfg.boss_dive_interval_base
+            )
+        else:
+            level._dive_ctrl.setup(level_number)
+
+        # Recreate boss power-up manager
+        if pu_cfg is not None:
+            from src.powerups.boss_manager import BossPowerUpManager
+
+            level._boss_powerup_manager = BossPowerUpManager(
+                pu_cfg, boss_cfg, window_width, window_height, sprite_scale=scale
+            )
+            level._boss_powerup_manager.setup(level_number, "boss")
 
         return level

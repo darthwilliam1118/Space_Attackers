@@ -259,7 +259,12 @@ class HUD(HUDBase):
                 self._score.text = f"SCORE: {p.score:06d}"
                 self._last_scores[0] = p.score
             if level != self._last_level:
-                self._level.text = "METEOR STORM" if level < 0 else f"LEVEL: {level}"
+                if level == -2:
+                    self._level.text = "BOSS BATTLE!"
+                elif level < 0:
+                    self._level.text = "METEOR STORM"
+                else:
+                    self._level.text = f"LEVEL: {level}"
                 self._last_level = level
             if p.lives != self._last_lives[0]:
                 self._last_lives[0] = p.lives
@@ -293,7 +298,12 @@ class HUD(HUDBase):
                     self._set_icon_count(self._p2_icon_list, p2.lives - 1)
 
             if level != self._last_level:
-                self._level.text = "METEOR STORM" if level < 0 else f"LEVEL: {level}"
+                if level == -2:
+                    self._level.text = "BOSS BATTLE!"
+                elif level < 0:
+                    self._level.text = "METEOR STORM"
+                else:
+                    self._level.text = f"LEVEL: {level}"
                 self._last_level = level
 
             self._last_active = active_num
