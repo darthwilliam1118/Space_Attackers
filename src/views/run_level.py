@@ -19,16 +19,17 @@ from agf.ui.text_utils import FONT_MAIN, FONT_THIN, centered_text
 
 from src.game_event import GameEvent
 from src.ship_config import ShipConfig
+from src.sound_manager import SoundManager
 from src.sprites.player_ship import PlayerShip
 from src.ui.hud import HUD
 from src.ui_config import UIConfig
 
-_SND_ENEMY_KILLED = "assets/sounds/explosionCrunch_000.ogg"
-_SND_PLAYER_KILLED = "assets/sounds/explosionCrunch_004.ogg"
-_SND_ENEMY_SHOOT = "assets/sounds/laserLarge_000.ogg"
-_SND_PLAYER_SHOOT = "assets/sounds/laserSmall_000.ogg"
-_SND_POWERUP_PICKUP = "assets/sounds/laserSmall_001.ogg"
-_SND_EXTRA_LIFE = "assets/sounds/extraLife.ogg"
+_SND_ENEMY_KILLED = "assets/sounds/explosionCrunch_000.wav"
+_SND_PLAYER_KILLED = "assets/sounds/explosionCrunch_004.wav"
+_SND_ENEMY_SHOOT = "assets/sounds/laserLarge_000.wav"
+_SND_PLAYER_SHOOT = "assets/sounds/laserSmall_000.wav"
+_SND_POWERUP_PICKUP = "assets/sounds/laserSmall_001.wav"
+_SND_EXTRA_LIFE = "assets/sounds/extraLife.wav"
 _EXTRA_LIFE_INTERVAL = 10_000
 
 
@@ -141,6 +142,10 @@ class RunLevelView(arcade.View):
         self._snd_powerup_pickup = arcade.load_sound(resource_path(_SND_POWERUP_PICKUP))
         self._snd_extra_life = arcade.load_sound(resource_path(_SND_EXTRA_LIFE))
 
+        self._sm_enemy_killed = SoundManager(max_simultaneous=2)
+        self._sm_enemy_shoot = SoundManager(max_simultaneous=3)
+        self._sm_player_shoot = SoundManager(max_simultaneous=2)
+
     # ------------------------------------------------------------------
     # Arcade callbacks
     # ------------------------------------------------------------------
@@ -206,6 +211,9 @@ class RunLevelView(arcade.View):
         from src.state import GameState
 
         delta_time = min(delta_time, 1.0 / 15.0)  # cap to ~66ms to survive debugger pauses
+
+        if self._debug and delta_time > 0.025:
+            print(f"Frame spike: {delta_time*1000:.1f}ms")
 
         if self._paused:
             # Run a gen-0 sweep each frame to prevent orphaned GL buffer objects
@@ -352,7 +360,9 @@ class RunLevelView(arcade.View):
                         )
                         self._explosions.append(exp)
                         if self._snd_enemy_killed is not None:
-                            arcade.play_sound(self._snd_enemy_killed, volume=self._sfx_volume())
+                            self._sm_enemy_killed.play(
+                                self._snd_enemy_killed, volume=self._sfx_volume()
+                            )
                         self._update_score(points)
                         cfg = self._manager.context.get("config")
                         ui_cfg: UIConfig = cfg.ui if cfg is not None else UIConfig()
@@ -382,7 +392,7 @@ class RunLevelView(arcade.View):
             len(self._level.get_enemy_bullet_sprite_list()) > enemy_bullets_before
             and self._snd_enemy_shoot is not None
         ):
-            arcade.play_sound(self._snd_enemy_shoot, volume=self._sfx_volume())
+            self._sm_enemy_shoot.play(self._snd_enemy_shoot, volume=self._sfx_volume())
 
         # Process all pending hits (grid body-collisions + dive kills)
         cfg = self._manager.context.get("config")
@@ -412,7 +422,7 @@ class RunLevelView(arcade.View):
             self._explosions.append(exp)
             self.spawn_destruction_effect(hit_x, hit_y, vx, vy)
             if self._snd_enemy_killed is not None:
-                arcade.play_sound(self._snd_enemy_killed, volume=self._sfx_volume())
+                self._sm_enemy_killed.play(self._snd_enemy_killed, volume=self._sfx_volume())
 
         for hit_x, hit_y in self._level.consume_pending_non_lethal_hits():
             self._spawn_hit_ring(hit_x, hit_y)
@@ -436,7 +446,7 @@ class RunLevelView(arcade.View):
                 )
                 self._explosions.append(exp)
                 if self._snd_enemy_killed is not None:
-                    arcade.play_sound(self._snd_enemy_killed, volume=self._sfx_volume())
+                    self._sm_enemy_killed.play(self._snd_enemy_killed, volume=self._sfx_volume())
 
         if self._ship.hit_points < ship_hp_before and GameEvent.PLAYER_KILLED not in events:
             self._spawn_hit_ring(self._ship.center_x, self._ship.center_y)
@@ -653,7 +663,7 @@ class RunLevelView(arcade.View):
         if behavior is not None:
             bullets = behavior.get_bullets(self._ship)
             if bullets and self._snd_player_shoot is not None:
-                arcade.play_sound(self._snd_player_shoot, volume=self._sfx_volume())
+                self._sm_player_shoot.play(self._snd_player_shoot, volume=self._sfx_volume())
             for b in bullets:
                 self._player_bullets.append(b)
             return
@@ -662,7 +672,7 @@ class RunLevelView(arcade.View):
         if bullet is not None:
             self._player_bullets.append(bullet)
             if self._snd_player_shoot is not None:
-                arcade.play_sound(self._snd_player_shoot, volume=self._sfx_volume())
+                self._sm_player_shoot.play(self._snd_player_shoot, volume=self._sfx_volume())
 
     def _filter_damage(self, amount: int) -> int:
         """Damage filter installed on PlayerShip — absorbs hits via active overlay."""

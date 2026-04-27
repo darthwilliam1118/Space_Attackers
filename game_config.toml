@@ -20,7 +20,7 @@ bullet_speed = 500.0
 spawn_invincible_duration = 2.0
 ship_zone_height_pct = 0.33
 explosion_frame_duration = 0.05
-player_max_hp = 100
+player_max_hp = 200
 player_bullet_damage = 100
 
 [background]

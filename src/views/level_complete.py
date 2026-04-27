@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 _LEVEL_BONUS = 1000
 _EXTRA_LIFE_INTERVAL = 10_000
-_SND_EXTRA_LIFE = "assets/sounds/extraLife.ogg"
+_SND_EXTRA_LIFE = "assets/sounds/extraLife.wav"
 
 
 class LevelCompleteView(_LevelCompleteViewBase):

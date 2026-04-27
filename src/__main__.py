@@ -10,6 +10,7 @@ if sys.platform == "win32":
     pyglet.options["win32_gdi_font"] = (
         True  # DirectWrite can't find fonts with weight names like "Thin"
     )
+    pyglet.options["audio"] = ("xaudio2", "directsound", "openal", "silent")
 
 from src.game import main  # noqa: E402
 
