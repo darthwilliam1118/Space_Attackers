@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING, Optional
 
 import arcade
@@ -340,6 +341,7 @@ class RunLevelView(arcade.View):
             return
 
         # Player bullets vs enemy grid (via BaseLevel interface)
+        _t0 = time.perf_counter()
         for bullet in list(self._player_bullets):
             bullet.update(delta_time)  # type: ignore[arg-type]
             if bullet.sprite_lists:  # still alive (not self-removed from off-screen)
@@ -384,14 +386,17 @@ class RunLevelView(arcade.View):
 
         # Level update: enemy movement, shooting, dive attacks, all collisions
         # (DiveController receives remaining player_bullets to handle dive-ship hits)
+        _t1 = time.perf_counter()
         collision_target = self._ship if not self._ship.is_invincible() else None
-        enemy_bullets_before = len(self._level.get_enemy_bullet_sprite_list())
         ship_hp_before = self._ship.hit_points
         events = self._level.update(delta_time, collision_target, self._player_bullets)
-        if (
-            len(self._level.get_enemy_bullet_sprite_list()) > enemy_bullets_before
-            and self._snd_enemy_shoot is not None
-        ):
+        _t2 = time.perf_counter()
+        if self._debug and delta_time > 0.025:
+            print(
+                f"  PlayerBullets: {(_t1 - _t0) * 1000:.1f}ms"
+                f"  LevelUpdate: {(_t2 - _t1) * 1000:.1f}ms"
+            )
+        if GameEvent.ENEMY_SHOT in events and self._snd_enemy_shoot is not None:
             self._sm_enemy_shoot.play(self._snd_enemy_shoot, volume=self._sfx_volume())
 
         # Process all pending hits (grid body-collisions + dive kills)

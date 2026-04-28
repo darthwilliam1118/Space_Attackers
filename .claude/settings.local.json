@@ -28,7 +28,8 @@
       "Bash(grep -v \"^$\\\\|reformatted\\\\|All done\\\\|unchanged\\\\|Oh no\")",
       "Bash(xargs grep *)",
       "Bash(grep -E \"\\\\.py$\")",
-      "Read(//c/Users/darth/Code/**)"
+      "Read(//c/Users/darth/Code/**)",
+      "Bash(pip show *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\darth\\Code\\arcade-game-framework"

@@ -88,7 +88,7 @@ class EnemyGrid:
         self._pending_hits: list[tuple[float, float, int]] = (
             []
         )  # (cx, cy, points) for body collisions
-        self._sprite_list = arcade.SpriteList(use_spatial_hash=True)
+        self._sprite_list = arcade.SpriteList(use_spatial_hash=False)
         self._bullet_list = arcade.SpriteList(use_spatial_hash=False)
 
     # ------------------------------------------------------------------
@@ -148,7 +148,7 @@ class EnemyGrid:
         self._col_offsets = [c * col_spacing for c in range(self._cols)]
         self._row_offsets = [r * (-row_spacing) for r in range(self._rows)]
 
-        self._sprite_list = arcade.SpriteList(use_spatial_hash=True)
+        self._sprite_list = arcade.SpriteList(use_spatial_hash=False)
         self._total_enemies = self._cols * self._rows
         self._enemies_destroyed = 0
         self.recalculate_speed()  # sets initial speed for this level
@@ -227,6 +227,7 @@ class EnemyGrid:
                         break
 
         cfg = self._config
+        _shot_fired = False
         for col, enemy in bottom_enemies.items():
             if enemy is None or col in active_cols:
                 continue
@@ -244,10 +245,16 @@ class EnemyGrid:
                 )
                 self._bullet_list.append(bullet)
                 active_cols.add(col)
+                _shot_fired = True
+        if _shot_fired:
+            events.append(GameEvent.ENEMY_SHOT)
 
         # Collision: enemy bullet vs player ship
-        if player_ship is not None:
-            hits = arcade.check_for_collision_with_list(player_ship, self._bullet_list)
+        if player_ship is not None and self._bullet_list:
+            if min(b.center_y for b in self._bullet_list) <= player_ship.top + 20:
+                hits = arcade.check_for_collision_with_list(player_ship, self._bullet_list)
+            else:
+                hits = []
             if hits:
                 for b in hits:
                     b.remove_from_sprite_lists()
@@ -547,7 +554,7 @@ class EnemyGrid:
         grid._enemies_destroyed = int(snapshot.get("enemies_destroyed", 0))
         grid._shoot_timers = {int(k): float(v) for k, v in snapshot.get("shoot_timers", {}).items()}
 
-        grid._sprite_list = arcade.SpriteList(use_spatial_hash=True)
+        grid._sprite_list = arcade.SpriteList(use_spatial_hash=False)
         for edata in snapshot.get("enemies", []):
             color = edata["color"]
             ship_type = int(edata["ship_type"])
