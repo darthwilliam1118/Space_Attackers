@@ -136,6 +136,7 @@ class MeteorLevel(BaseLevel):
         delta_time: float,
         player_ship: Any,
         player_bullets: Optional[arcade.SpriteList] = None,
+        frame_count: int = 0,
     ) -> list[GameEvent]:
         events: list[GameEvent] = []
 

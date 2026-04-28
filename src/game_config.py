@@ -32,6 +32,7 @@ def _config_path() -> Path:
 class GameConfig(BaseGameConfig):
     spawn_safe_radius: int = 80
     force_level_type: str = ""
+    debug_show_collision_timing: bool = False
     ship: ShipConfig = field(default_factory=ShipConfig)
     enemies: EnemyConfig = field(default_factory=EnemyConfig)
     background: BackgroundConfig = field(default_factory=BackgroundConfig)
@@ -400,6 +401,9 @@ class GameConfig(BaseGameConfig):
             effects_volume=int(game.get("effects_volume", cls.effects_volume)),
             debug=bool(game.get("debug", cls.debug)),
             god_mode=bool(game.get("god_mode", cls.god_mode)),
+            debug_show_collision_timing=bool(
+                game.get("debug_show_collision_timing", cls.debug_show_collision_timing)
+            ),
             max_window_height=int(game.get("max_window_height", 0)),
             sprite_scale=float(game.get("sprite_scale", cls.sprite_scale)),
             ship=sc,
@@ -429,6 +433,8 @@ class GameConfig(BaseGameConfig):
             f"effects_volume = {self.effects_volume}\n",
             f"debug = {'true' if self.debug else 'false'}\n",
             f"god_mode = {'true' if self.god_mode else 'false'}\n",
+            f"debug_show_collision_timing = "
+            f"{'true' if self.debug_show_collision_timing else 'false'}\n",
             f"max_window_height = {self.max_window_height}\n",
             f"sprite_scale = {self.sprite_scale}\n",
             f'force_level_type = "{self.force_level_type}"\n',

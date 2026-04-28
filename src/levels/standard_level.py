@@ -5,6 +5,7 @@ Owns the optional SAPowerUpManager and forwards lifecycle calls to it.
 
 from __future__ import annotations
 
+import time
 from typing import Any, Optional
 
 import arcade
@@ -28,6 +29,7 @@ class StandardLevel(BaseLevel):
         self._grid = grid
         self._dive = dive_ctrl
         self._powerup_manager = powerup_manager
+        self._last_timing: dict[str, float | None] = {}
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -52,11 +54,42 @@ class StandardLevel(BaseLevel):
         delta_time: float,
         player_ship: Any,
         player_bullets: Optional[arcade.SpriteList] = None,
+        frame_count: int = 0,
     ) -> list[GameEvent]:
         bullets = player_bullets if player_bullets is not None else arcade.SpriteList()
         events: list[GameEvent] = []
-        events += self._grid.update(delta_time, player_ship)
-        events += self._dive.update(delta_time, self._grid, player_ship, bullets)
+
+        check_enemy_bullets = frame_count % 2 == 0
+        check_enemy_bodies = frame_count % 3 == 1
+        check_enemy_shooting = frame_count % 3 == 0
+        check_dive_bombs = frame_count % 2 == 1
+        check_dive_bodies = frame_count % 3 == 2
+
+        _t0 = time.perf_counter()
+        events += self._grid.update(
+            delta_time,
+            player_ship,
+            check_bullets=check_enemy_bullets,
+            check_bodies=check_enemy_bodies,
+            check_shooting=check_enemy_shooting,
+        )
+        _t1 = time.perf_counter()
+        events += self._dive.update(
+            delta_time,
+            self._grid,
+            player_ship,
+            bullets,
+            check_bodies=check_dive_bodies,
+            check_bombs=check_dive_bombs,
+        )
+        _t2 = time.perf_counter()
+
+        self._last_timing = {
+            **self._grid.last_timing,
+            **self._dive.last_timing,
+            "grid_total": _t1 - _t0,
+            "dive_total": _t2 - _t1,
+        }
         if self._powerup_manager is not None:
             collected = self._powerup_manager.update(
                 delta_time,
@@ -157,6 +190,9 @@ class StandardLevel(BaseLevel):
     # ------------------------------------------------------------------
     # Debug
     # ------------------------------------------------------------------
+
+    def get_last_timing(self) -> dict[str, float | None]:
+        return self._last_timing
 
     def debug_force_dive(self, player_x: float) -> None:
         self._dive.launch_group(self._grid, player_x)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+import time
 from typing import TYPE_CHECKING, Any, NamedTuple, Optional
 
 import arcade
@@ -90,6 +91,7 @@ class EnemyGrid:
         )  # (cx, cy, points) for body collisions
         self._sprite_list = arcade.SpriteList(use_spatial_hash=False)
         self._bullet_list = arcade.SpriteList(use_spatial_hash=False)
+        self.last_timing: dict[str, float | None] = {}
 
     # ------------------------------------------------------------------
     # Setup / spawn
@@ -188,9 +190,13 @@ class EnemyGrid:
         self,
         delta_time: float,
         player_ship: Optional["PlayerShip"],
+        check_bullets: bool = True,
+        check_bodies: bool = True,
+        check_shooting: bool = True,
     ) -> list[GameEvent]:
         """Move grid, handle shooting, check collisions.  Returns events."""
         events: list[GameEvent] = []
+        _ta = time.perf_counter()
 
         self._move(delta_time)
         self.check_boundary()
@@ -209,48 +215,47 @@ class EnemyGrid:
         for bullet in list(self._bullet_list):  # type: ignore[attr-defined]
             bullet.update(delta_time)
 
-        # Enemy shooting
-        bottom_enemies = self.get_bottom_enemies()
-        cols_with_bullet = {
-            int(b.center_x) for b in self._bullet_list  # type: ignore[attr-defined]
-        }
-        _ = cols_with_bullet  # used implicitly via per-column lock below
+        # Enemy shooting (staggered — only runs when check_shooting is True)
+        if check_shooting:
+            bottom_enemies = self.get_bottom_enemies()
 
-        # Track which columns already have an active bullet
-        active_cols: set[int] = set()
-        for bullet in self._bullet_list:  # type: ignore[attr-defined]
-            # Identify bullet's column via proximity to col offsets
-            for col, sprite in bottom_enemies.items():
-                if sprite is not None:
-                    if abs(bullet.center_x - sprite.center_x) < 5:
-                        active_cols.add(col)
-                        break
+            # Track which columns already have an active bullet
+            active_cols: set[int] = set()
+            for bullet in self._bullet_list:  # type: ignore[attr-defined]
+                for col, sprite in bottom_enemies.items():
+                    if sprite is not None:
+                        if abs(bullet.center_x - sprite.center_x) < 5:
+                            active_cols.add(col)
+                            break
 
-        cfg = self._config
-        _shot_fired = False
-        for col, enemy in bottom_enemies.items():
-            if enemy is None or col in active_cols:
-                continue
-            self._shoot_timers[col] = self._shoot_timers.get(col, self._fire_max)
-            self._shoot_timers[col] -= delta_time
-            if self._shoot_timers[col] <= 0.0:
-                self._shoot_timers[col] = random.uniform(self._fire_min, self._fire_max)
-                bullet = EnemyBullet(
-                    x=enemy.center_x,
-                    y=enemy.bottom,
-                    speed=cfg.enemy_bullet_speed,
-                    texture=self._bullet_texture,
-                    scale=self._sprite_scale,
-                    damage=cfg.enemy_bullet_damage,
-                )
-                self._bullet_list.append(bullet)
-                active_cols.add(col)
-                _shot_fired = True
-        if _shot_fired:
-            events.append(GameEvent.ENEMY_SHOT)
+            cfg = self._config
+            _shot_fired = False
+            for col, enemy in bottom_enemies.items():
+                if enemy is None or col in active_cols:
+                    continue
+                self._shoot_timers[col] = self._shoot_timers.get(col, self._fire_max)
+                self._shoot_timers[col] -= delta_time
+                if self._shoot_timers[col] <= 0.0:
+                    self._shoot_timers[col] = random.uniform(self._fire_min, self._fire_max)
+                    bullet = EnemyBullet(
+                        x=enemy.center_x,
+                        y=enemy.bottom,
+                        speed=cfg.enemy_bullet_speed,
+                        texture=self._bullet_texture,
+                        scale=self._sprite_scale,
+                        damage=cfg.enemy_bullet_damage,
+                    )
+                    self._bullet_list.append(bullet)
+                    active_cols.add(col)
+                    _shot_fired = True
+            if _shot_fired:
+                events.append(GameEvent.ENEMY_SHOT)
+
+        _tb = time.perf_counter()
 
         # Collision: enemy bullet vs player ship
-        if player_ship is not None and self._bullet_list:
+        _tc = time.perf_counter()
+        if check_bullets and player_ship is not None and self._bullet_list:
             if min(b.center_y for b in self._bullet_list) <= player_ship.top + 20:
                 hits = arcade.check_for_collision_with_list(player_ship, self._bullet_list)
             else:
@@ -259,11 +264,19 @@ class EnemyGrid:
                 for b in hits:
                     b.remove_from_sprite_lists()
                     if player_ship.take_damage(b.damage):
+                        self.last_timing = {
+                            "grid_move_shoot": _tb - _ta,
+                            "grid_bullets": time.perf_counter() - _tc,
+                            "grid_bodies": None,
+                        }
                         events.append(GameEvent.PLAYER_KILLED)
                         return events
+        _td = time.perf_counter()
 
-            # Collision: enemy sprite vs player ship — remove enemy and queue explosion.
-            # Shield absorbs the collision; without shield the player is killed.
+        # Collision: enemy sprite vs player ship — remove enemy and queue explosion.
+        # Shield absorbs the collision; without shield the player is killed.
+        _te = time.perf_counter()
+        if check_bodies and player_ship is not None:
             hits = arcade.check_for_collision_with_list(player_ship, self._sprite_list)
             if hits:
                 for enemy in hits:
@@ -271,10 +284,21 @@ class EnemyGrid:
                     enemy.remove_from_sprite_lists()
                     self._enemies_destroyed += 1
                 self.recalculate_speed()
+                self.last_timing = {
+                    "grid_move_shoot": _tb - _ta,
+                    "grid_bullets": (_td - _tc) if check_bullets else None,
+                    "grid_bodies": time.perf_counter() - _te,
+                }
                 if player_ship.take_damage(player_ship.hit_points):
                     events.append(GameEvent.PLAYER_KILLED)
                 return events
+        _tf = time.perf_counter()
 
+        self.last_timing = {
+            "grid_move_shoot": _tb - _ta,
+            "grid_bullets": (_td - _tc) if check_bullets else None,
+            "grid_bodies": (_tf - _te) if check_bodies else None,
+        }
         return events
 
     # ------------------------------------------------------------------

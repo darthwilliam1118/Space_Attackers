@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+import time
 from typing import TYPE_CHECKING, Optional
 
 import arcade
@@ -57,6 +58,7 @@ class DiveController:
         self._bomb_list: arcade.SpriteList = arcade.SpriteList()
         # Maps each DivingShip back to its original EnemySprite for grid re-insertion
         self._source_map: dict[int, "EnemySprite"] = {}  # id(DivingShip) → EnemySprite
+        self.last_timing: dict[str, float | None] = {}
 
         # Set True to block new group launches (2P waiting state)
         self.new_dive_launches_blocked: bool = False
@@ -149,6 +151,8 @@ class DiveController:
         enemy_grid: Optional["EnemyGrid"],
         player_ship: Optional["PlayerShip"],
         player_bullets: arcade.SpriteList,
+        check_bodies: bool = True,
+        check_bombs: bool = True,
     ) -> list[GameEvent]:
         """Advance timer, update active ships, handle collisions, return events."""
         events: list[GameEvent] = []
@@ -242,7 +246,8 @@ class DiveController:
                 break  # one bullet hits one ship
 
         # Check diving ships vs player ship
-        if player_ship is not None and not player_ship.is_invincible():
+        _ta = time.perf_counter()
+        if check_bodies and player_ship is not None and not player_ship.is_invincible():
             hits = arcade.check_for_collision_with_list(player_ship, self._ship_list)
             if hits:
                 for ship in hits:
@@ -259,16 +264,23 @@ class DiveController:
                     self._source_map.pop(id(ship), None)
                 if player_ship.take_damage(player_ship.hit_points):
                     events.append(GameEvent.PLAYER_KILLED)
+        _tb = time.perf_counter()
 
         # Check dive bombs vs player ship
-        if player_ship is not None and not player_ship.is_invincible():
+        _tc = time.perf_counter()
+        if check_bombs and player_ship is not None and not player_ship.is_invincible():
             hits = arcade.check_for_collision_with_list(player_ship, self._bomb_list)
             if hits:
                 for bomb in hits:
                     bomb.remove_from_sprite_lists()
                 if player_ship.take_damage(player_ship.hit_points):
                     events.append(GameEvent.PLAYER_KILLED)
+        _td = time.perf_counter()
 
+        self.last_timing = {
+            "dive_bodies": (_tb - _ta) if check_bodies else None,
+            "dive_bombs": (_td - _tc) if check_bombs else None,
+        }
         return events
 
     # ------------------------------------------------------------------

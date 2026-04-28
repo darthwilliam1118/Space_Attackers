@@ -6,6 +6,7 @@ import time
 from typing import TYPE_CHECKING, Optional
 
 import arcade
+import pyglet.media as media
 
 if TYPE_CHECKING:
     from src.state import GameStateManager
@@ -89,6 +90,8 @@ class RunLevelView(arcade.View):
 
         self._shield_sprite_ref: Optional[arcade.Sprite] = None
         self._overlay_list: arcade.SpriteList = arcade.SpriteList()
+        self._frame_count: int = 0
+        self._debug_timer: float = 0.0
 
         self._setup()
 
@@ -216,6 +219,13 @@ class RunLevelView(arcade.View):
         if self._debug and delta_time > 0.025:
             print(f"Frame spike: {delta_time*1000:.1f}ms")
 
+        self._debug_timer += delta_time
+        if self._debug_timer > 1.0:
+            self._debug_timer = 0.0
+            print(f"Active audio players: {len(media.Source._players)}")
+
+        self._frame_count = (self._frame_count + 1) & 0xF
+
         if self._paused:
             # Run a gen-0 sweep each frame to prevent orphaned GL buffer objects
             # (created by any remaining on_draw allocations) from building up and
@@ -342,9 +352,10 @@ class RunLevelView(arcade.View):
 
         # Player bullets vs enemy grid (via BaseLevel interface)
         _t0 = time.perf_counter()
+        _check_grid = self._frame_count % 3 == 0
         for bullet in list(self._player_bullets):
             bullet.update(delta_time)  # type: ignore[arg-type]
-            if bullet.sprite_lists:  # still alive (not self-removed from off-screen)
+            if bullet.sprite_lists and _check_grid:  # still alive; collision every 3rd frame
                 hit = self._level.apply_player_bullet(bullet)
                 if hit is not None:
                     bullet.remove_from_sprite_lists()
@@ -389,13 +400,30 @@ class RunLevelView(arcade.View):
         _t1 = time.perf_counter()
         collision_target = self._ship if not self._ship.is_invincible() else None
         ship_hp_before = self._ship.hit_points
-        events = self._level.update(delta_time, collision_target, self._player_bullets)
+        events = self._level.update(
+            delta_time,
+            collision_target,
+            self._player_bullets,
+            frame_count=self._frame_count,
+        )
         _t2 = time.perf_counter()
         if self._debug and delta_time > 0.025:
             print(
                 f"  PlayerBullets: {(_t1 - _t0) * 1000:.1f}ms"
                 f"  LevelUpdate: {(_t2 - _t1) * 1000:.1f}ms"
             )
+            cfg = self._manager.context.get("config")
+            if cfg is not None and cfg.debug_show_collision_timing:
+                _timing = self._level.get_last_timing()
+                if _timing:
+                    _ms = lambda t: f"{t * 1000:.1f}ms" if t is not None else "skip"  # noqa: E731
+                    print(
+                        f"  Grid[move+shoot]: {_ms(_timing.get('grid_move_shoot', 0.0))}"
+                        f"  Grid[bullets]: {_ms(_timing.get('grid_bullets'))}"
+                        f"  Grid[bodies]: {_ms(_timing.get('grid_bodies'))}"
+                        f"  Dive[bodies]: {_ms(_timing.get('dive_bodies'))}"
+                        f"  Dive[bombs]: {_ms(_timing.get('dive_bombs'))}"
+                    )
         if GameEvent.ENEMY_SHOT in events and self._snd_enemy_shoot is not None:
             self._sm_enemy_shoot.play(self._snd_enemy_shoot, volume=self._sfx_volume())
 

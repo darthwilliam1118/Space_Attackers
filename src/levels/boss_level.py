@@ -332,6 +332,7 @@ class BossLevel(BaseLevel):
         delta_time: float,
         player_ship: Any,
         player_bullets: Optional[arcade.SpriteList] = None,
+        frame_count: int = 0,
     ) -> list[GameEvent]:
         bullets = player_bullets if player_bullets is not None else arcade.SpriteList()
         events: list[GameEvent] = []
