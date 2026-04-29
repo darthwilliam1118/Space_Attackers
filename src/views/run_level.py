@@ -6,7 +6,6 @@ import time
 from typing import TYPE_CHECKING, Optional
 
 import arcade
-import pyglet.media as media
 
 if TYPE_CHECKING:
     from src.state import GameStateManager
@@ -91,7 +90,6 @@ class RunLevelView(arcade.View):
         self._shield_sprite_ref: Optional[arcade.Sprite] = None
         self._overlay_list: arcade.SpriteList = arcade.SpriteList()
         self._frame_count: int = 0
-        self._debug_timer: float = 0.0
 
         self._setup()
 
@@ -221,11 +219,6 @@ class RunLevelView(arcade.View):
 
         if self._debug and delta_time > 0.025:
             print(f"Frame spike: {delta_time*1000:.1f}ms")
-
-        self._debug_timer += delta_time
-        if self._debug_timer > 1.0:
-            self._debug_timer = 0.0
-            print(f"Active audio players: {len(media.Source._players)}")
 
         self._frame_count = (self._frame_count + 1) & 0xF
 
