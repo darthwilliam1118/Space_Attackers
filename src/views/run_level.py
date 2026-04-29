@@ -6,6 +6,7 @@ import time
 from typing import TYPE_CHECKING, Optional
 
 import arcade
+import gc
 
 if TYPE_CHECKING:
     from src.state import GameStateManager
@@ -274,6 +275,8 @@ class RunLevelView(arcade.View):
             self._score_popups = [p for p in self._score_popups if not p.is_done]
             explosion_done = self._death_explosion is None or self._death_explosion.is_complete
             if explosion_done or self._death_timer >= 2.0:
+                import gc
+                gc.collect()
                 players = self._manager.context.get("players", [])
                 is_multiplayer = len(players) > 1
                 if is_multiplayer and self._level is not None and self._level.has_any_airborne():
