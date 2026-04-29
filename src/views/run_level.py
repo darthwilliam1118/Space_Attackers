@@ -149,6 +149,9 @@ class RunLevelView(arcade.View):
         self._sm_enemy_killed = SoundManager(max_simultaneous=2)
         self._sm_enemy_shoot = SoundManager(max_simultaneous=3)
         self._sm_player_shoot = SoundManager(max_simultaneous=2)
+        self._sm_powerup_pickup = SoundManager(max_simultaneous=1)
+        self._sm_player_killed = SoundManager(max_simultaneous=1)
+        self._sm_extra_life = SoundManager(max_simultaneous=1)
 
     # ------------------------------------------------------------------
     # Arcade callbacks
@@ -506,7 +509,9 @@ class RunLevelView(arcade.View):
         for event in events:
             if event == GameEvent.POWERUP_COLLECTED:
                 if self._snd_powerup_pickup is not None:
-                    arcade.play_sound(self._snd_powerup_pickup, volume=self._sfx_volume())
+                    self._sm_powerup_pickup.play(
+                        self._snd_powerup_pickup, volume=self._sfx_volume()
+                    )
             elif event == GameEvent.ENEMY_DESTROYED:
                 # Boss kill — spawn a large particle burst at boss death position
                 if self._level is not None and hasattr(self._level, "get_boss_death_center"):
@@ -739,7 +744,7 @@ class RunLevelView(arcade.View):
         self._dying = True
         self._death_timer = 0.0
         if self._snd_player_killed is not None:
-            arcade.play_sound(self._snd_player_killed, volume=self._sfx_volume())
+            self._sm_player_killed.play(self._snd_player_killed, volume=self._sfx_volume())
         manager = self._level.get_powerup_manager() if self._level is not None else None
         if manager is not None:
             from src.powerups.sa_manager import SAPowerUpManager
@@ -892,4 +897,4 @@ class RunLevelView(arcade.View):
             for _ in range(earned):
                 player.lives += 1
                 if self._snd_extra_life is not None:
-                    arcade.play_sound(self._snd_extra_life, volume=self._sfx_volume())
+                    self._sm_extra_life.play(self._snd_extra_life, volume=self._sfx_volume())

@@ -8,6 +8,8 @@ import arcade
 from agf.paths import resource_path
 from agf.views.level_complete import LevelCompleteView as _LevelCompleteViewBase
 
+from src.sound_manager import SoundManager
+
 if TYPE_CHECKING:
     from src.state import GameStateManager
 
@@ -24,6 +26,7 @@ class LevelCompleteView(_LevelCompleteViewBase):
         self._snd_extra_life: Optional[arcade.Sound] = arcade.load_sound(
             resource_path(_SND_EXTRA_LIFE)
         )
+        self._sm_extra_life = SoundManager(max_simultaneous=1)
         super().__init__(on_complete=self._advance)
 
     def apply_bonus(self) -> None:
@@ -39,7 +42,7 @@ class LevelCompleteView(_LevelCompleteViewBase):
             for _ in range(earned):
                 player.lives += 1
                 if self._snd_extra_life is not None:
-                    arcade.play_sound(self._snd_extra_life)
+                    self._sm_extra_life.play(self._snd_extra_life)
             if not is_meteor and not is_boss:
                 old_level = player.current_level
                 player.current_level += 1
