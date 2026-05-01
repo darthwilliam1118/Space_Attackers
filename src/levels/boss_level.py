@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import random
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -251,6 +252,7 @@ class BossLevel(BaseLevel):
         self._boss: Optional["BossSprite"] = None
         self._boss_list: arcade.SpriteList = arcade.SpriteList()
         self._bullet_list: arcade.SpriteList = arcade.SpriteList()
+        self._empty_bullets: arcade.SpriteList = arcade.SpriteList()  # reusable empty list
         self._dive_ctrl: Optional[BossDiveController] = None
         self._player_powerup_manager = player_powerup_manager
         self._boss_powerup_manager: Optional[Any] = None
@@ -263,6 +265,7 @@ class BossLevel(BaseLevel):
         self._death_explosion_timer: float = 0.0
         self._death_explosions: arcade.SpriteList = arcade.SpriteList()
         self._boss_death_center: Optional[tuple[float, float]] = None
+        self._boss_vibrate_x: float = 0.0
         self._level_cleared: bool = False
 
         # Pending events (extra: non-lethal hits not from boss sprite)
@@ -340,8 +343,14 @@ class BossLevel(BaseLevel):
         if self._level_cleared:
             return events
 
-        # Death sequence — continue animating then signal complete
+        # Death sequence — keep bullets/divers/power-ups animating, no collision
         if self._dying:
+            for bullet in list(self._bullet_list):
+                bullet.update(delta_time)
+            if self._dive_ctrl is not None:
+                self._dive_ctrl.update(delta_time, None, None, self._empty_bullets)
+            if self._player_powerup_manager is not None:
+                self._player_powerup_manager.update(delta_time, player_ship, {}, [])
             events += self._update_death_sequence(delta_time)
             return events
 
@@ -451,13 +460,19 @@ class BossLevel(BaseLevel):
         self._death_explosion_timer = 0.0
         if self._boss is not None:
             self._boss_death_center = (self._boss.center_x, self._boss.center_y)
-            self._boss_list.clear()  # hide boss sprite immediately
+            self._boss_vibrate_x = self._boss.center_x  # anchor for vibration
 
     def _update_death_sequence(self, delta_time: float) -> list[GameEvent]:
         from agf.sprites.explosion import ExplosionSprite
 
         self._death_timer += delta_time
         self._death_explosion_timer += delta_time
+
+        # Vibrate boss sprite left/right at 10 Hz, ±4 px
+        if self._boss is not None:
+            self._boss.center_x = self._boss_vibrate_x + 4.0 * math.sin(
+                self._death_timer * 2.0 * math.pi * 10.0
+            )
 
         if (
             self._boss_death_center is not None
@@ -471,13 +486,14 @@ class BossLevel(BaseLevel):
             half_h = (self._boss.height if self._boss else 60) / 2.0
             x = cx + random.uniform(-half_w, half_w)
             y = cy + random.uniform(-half_h, half_h)
-            exp = ExplosionSprite(x=x, y=y, frame_duration=0.05, scale=self._scale * 1.5)
+            exp = ExplosionSprite(x=x, y=y, frame_duration=0.05, scale=1.0)
             self._death_explosions.append(exp)
 
         for exp in list(self._death_explosions):
             exp.update(delta_time)  # auto-removes itself from SpriteList when complete
 
         if self._death_timer >= self._boss_cfg.boss_death_duration:
+            self._boss_list.clear()  # hide boss sprite at sequence end
             self._level_cleared = True
             return [GameEvent.LEVEL_COMPLETE]
 

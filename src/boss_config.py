@@ -38,8 +38,8 @@ class BossConfig:
     boss_points_per_boss: int = 500
 
     # Death sequence
-    boss_death_duration: float = 2.5
-    boss_death_explosion_count: int = 8
+    boss_death_duration: float = 5.0
+    boss_death_explosion_count: int = 20
     boss_death_particle_count: int = 60
 
     # Diving
