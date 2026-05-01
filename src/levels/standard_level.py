@@ -53,10 +53,9 @@ class StandardLevel(BaseLevel):
         self,
         delta_time: float,
         player_ship: Any,
-        player_bullets: Optional[arcade.SpriteList] = None,
+        player_bullets: arcade.SpriteList,
         frame_count: int = 0,
     ) -> list[GameEvent]:
-        bullets = player_bullets if player_bullets is not None else arcade.SpriteList()
         events: list[GameEvent] = []
 
         check_enemy_bullets = frame_count % 2 == 0
@@ -72,13 +71,14 @@ class StandardLevel(BaseLevel):
             check_bullets=check_enemy_bullets,
             check_bodies=check_enemy_bodies,
             check_shooting=check_enemy_shooting,
+            frame_count=frame_count,
         )
         _t1 = time.perf_counter()
         events += self._dive.update(
             delta_time,
             self._grid,
             player_ship,
-            bullets,
+            player_bullets,
             check_bodies=check_dive_bodies,
             check_bombs=check_dive_bombs,
         )
@@ -143,21 +143,14 @@ class StandardLevel(BaseLevel):
     # Sprite lists
     # ------------------------------------------------------------------
 
-    def get_all_enemy_sprites(self) -> arcade.SpriteList:
-        combined: arcade.SpriteList = arcade.SpriteList()
-        for s in self._grid.get_sprite_list():
-            combined.append(s)
-        for s in self._dive.get_all_sprites():
-            combined.append(s)
-        return combined
+    def get_all_enemy_sprites(self) -> list[arcade.Sprite]:
+        # Plain list — appending shared sprites into a fresh arcade.SpriteList
+        # every frame registers them with that temp list (Sprite.sprite_lists),
+        # creating a cycle the disabled cyclic GC cannot break.
+        return list(self._grid.get_sprite_list()) + list(self._dive.get_all_sprites())
 
-    def get_enemy_bullet_sprite_list(self) -> arcade.SpriteList:
-        combined: arcade.SpriteList = arcade.SpriteList()
-        for s in self._grid.get_bullet_sprite_list():
-            combined.append(s)
-        for s in self._dive.get_all_bullets():
-            combined.append(s)
-        return combined
+    def get_enemy_bullet_sprite_list(self) -> list[arcade.Sprite]:
+        return list(self._grid.get_bullet_sprite_list()) + list(self._dive.get_all_bullets())
 
     # ------------------------------------------------------------------
     # Power-ups

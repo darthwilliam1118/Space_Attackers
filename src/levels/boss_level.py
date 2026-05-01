@@ -546,14 +546,15 @@ class BossLevel(BaseLevel):
     # Sprite lists
     # ------------------------------------------------------------------
 
-    def get_all_enemy_sprites(self) -> arcade.SpriteList:
+    def get_all_enemy_sprites(self) -> list[arcade.Sprite]:
         # Return diver sprites (have hp_bar_timer); boss has its own dedicated HP bar.
+        # Plain list to avoid Sprite.sprite_lists cycle leaks (see BaseLevel docstring).
         if self._dive_ctrl is not None:
-            return self._dive_ctrl.get_ship_sprite_list()
-        return arcade.SpriteList()
+            return list(self._dive_ctrl.get_ship_sprite_list())
+        return []
 
-    def get_enemy_bullet_sprite_list(self) -> arcade.SpriteList:
-        return self._bullet_list
+    def get_enemy_bullet_sprite_list(self) -> list[arcade.Sprite]:
+        return list(self._bullet_list)
 
     # ------------------------------------------------------------------
     # Power-ups

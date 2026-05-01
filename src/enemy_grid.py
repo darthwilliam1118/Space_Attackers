@@ -93,6 +93,13 @@ class EnemyGrid:
         self._bullet_list = arcade.SpriteList(use_spatial_hash=False)
         self.last_timing: dict[str, float | None] = {}
 
+        # Y-threshold for bottom-snap guard (updated at setup from sprite height)
+        self._snap_guard_y: float = 100.0
+        # Accumulates delta_time on skipped bullet-movement frames
+        self._bullet_move_accum: float = 0.0
+        # Sprite count at the last check_boundary() call — triggers col rescan on change
+        self._cached_sprite_count: int = -1
+
     # ------------------------------------------------------------------
     # Setup / spawn
     # ------------------------------------------------------------------
@@ -149,6 +156,9 @@ class EnemyGrid:
 
         self._col_offsets = [c * col_spacing for c in range(self._cols)]
         self._row_offsets = [r * (-row_spacing) for r in range(self._rows)]
+        # Guard: only run bottom-snap loop when bottom row could be at y<=0.
+        # Half-height of a sprite + small buffer gives the threshold.
+        self._snap_guard_y = _probe.height * self._sprite_scale / 2.0 + 10.0
 
         self._sprite_list = arcade.SpriteList(use_spatial_hash=False)
         self._total_enemies = self._cols * self._rows
@@ -193,6 +203,7 @@ class EnemyGrid:
         check_bullets: bool = True,
         check_bodies: bool = True,
         check_shooting: bool = True,
+        frame_count: int = 0,
     ) -> list[GameEvent]:
         """Move grid, handle shooting, check collisions.  Returns events."""
         events: list[GameEvent] = []
@@ -200,33 +211,36 @@ class EnemyGrid:
 
         self._move(delta_time)
         self.check_boundary()
+        _t_move = time.perf_counter()
 
-        # Per-enemy bottom snap: if an enemy leaves the bottom of the window,
-        # teleport it directly to its spawn-time home position.
-        # Future diving recovery will reuse home_x/home_y with an animated path.
+        # hp_bar timers — cheap float ops, run every frame
         for enemy in self._sprite_list:  # type: ignore[attr-defined]
-            if enemy.bottom <= 0:
-                enemy.center_x = enemy.home_x
-                enemy.center_y = enemy.home_y
             if enemy.hp_bar_timer > 0:
                 enemy.hp_bar_timer -= delta_time
 
-        # Update enemy bullets
-        for bullet in list(self._bullet_list):  # type: ignore[attr-defined]
-            bullet.update(delta_time)
+        # Bottom snap — only when the lowest row is close enough to y=0 to matter.
+        # Avoids 170 enemy.bottom property calls per frame during normal play.
+        if self._row_offsets and self._origin_y + self._row_offsets[-1] < self._snap_guard_y:
+            for enemy in self._sprite_list:  # type: ignore[attr-defined]
+                if enemy.bottom <= 0:
+                    enemy.center_x = enemy.home_x
+                    enemy.center_y = enemy.home_y
+        _t_hp = time.perf_counter()
+
+        # Update enemy bullet positions — staggered every 2 frames.
+        # Linear movement is mathematically equivalent with the accumulated delta.
+        self._bullet_move_accum += delta_time
+        if frame_count % 2 == 0:
+            for bullet in list(self._bullet_list):  # type: ignore[attr-defined]
+                bullet.update(self._bullet_move_accum)
+            self._bullet_move_accum = 0.0
+        _t_blt = time.perf_counter()
 
         # Enemy shooting (staggered — only runs when check_shooting is True)
         if check_shooting:
             bottom_enemies = self.get_bottom_enemies()
 
-            # Track which columns already have an active bullet
-            active_cols: set[int] = set()
-            for bullet in self._bullet_list:  # type: ignore[attr-defined]
-                for col, sprite in bottom_enemies.items():
-                    if sprite is not None:
-                        if abs(bullet.center_x - sprite.center_x) < 5:
-                            active_cols.add(col)
-                            break
+            active_cols: set[int] = {b.col for b in self._bullet_list}  # type: ignore[attr-defined]
 
             cfg = self._config
             _shot_fired = False
@@ -244,6 +258,7 @@ class EnemyGrid:
                         texture=self._bullet_texture,
                         scale=self._sprite_scale,
                         damage=cfg.enemy_bullet_damage,
+                        col=col,
                     )
                     self._bullet_list.append(bullet)
                     active_cols.add(col)
@@ -266,6 +281,11 @@ class EnemyGrid:
                     if player_ship.take_damage(b.damage):
                         self.last_timing = {
                             "grid_move_shoot": _tb - _ta,
+                            "grid_move_only": _t_move - _ta,
+                            "grid_hp_timers": _t_hp - _t_move,
+                            "grid_bullet_upd": _t_blt - _t_hp,
+                            "grid_shooting": _tb - _t_blt,
+                            "bullet_count": len(self._bullet_list),
                             "grid_bullets": time.perf_counter() - _tc,
                             "grid_bodies": None,
                         }
@@ -284,8 +304,14 @@ class EnemyGrid:
                     enemy.remove_from_sprite_lists()
                     self._enemies_destroyed += 1
                 self.recalculate_speed()
+                self._update_col_cache()
                 self.last_timing = {
                     "grid_move_shoot": _tb - _ta,
+                    "grid_move_only": _t_move - _ta,
+                    "grid_hp_timers": _t_hp - _t_move,
+                    "grid_bullet_upd": _t_blt - _t_hp,
+                    "grid_shooting": _tb - _t_blt,
+                    "bullet_count": len(self._bullet_list),
                     "grid_bullets": (_td - _tc) if check_bullets else None,
                     "grid_bodies": time.perf_counter() - _te,
                 }
@@ -296,6 +322,11 @@ class EnemyGrid:
 
         self.last_timing = {
             "grid_move_shoot": _tb - _ta,
+            "grid_move_only": _t_move - _ta,
+            "grid_hp_timers": _t_hp - _t_move,
+            "grid_bullet_upd": _t_blt - _t_hp,
+            "grid_shooting": _tb - _t_blt,
+            "bullet_count": len(self._bullet_list),
             "grid_bullets": (_td - _tc) if check_bullets else None,
             "grid_bodies": (_tf - _te) if check_bodies else None,
         }
@@ -427,25 +458,23 @@ class EnemyGrid:
         """Bounce off margins using grid-position geometry (not sprite pixel edges).
 
         Edges are computed from _origin_x + _col_offsets[outermost_col] so that
-        different sprite sizes don't affect when bouncing occurs.  When all ships
-        are temporarily airborne the last-known outermost column indices are reused
-        — they stay valid as the grid moves because they're index-based.
+        different sprite sizes don't affect when bouncing occurs.  The column-index
+        cache is refreshed only when the sprite count changes (O(N) scan amortised
+        across destructions, not every frame).
         """
+        if not self._col_offsets:
+            return
+
+        current_count = len(self._sprite_list)
+        if current_count != self._cached_sprite_count:
+            self._update_col_cache()
+            self._cached_sprite_count = current_count
+
         margin = self._config.enemy_side_margin
         drop = self._config.enemy_drop_distance
 
-        sprites = list(self._sprite_list)  # type: ignore[attr-defined]
-        if sprites:
-            right_col = max(s.col for s in sprites)
-            left_col = min(s.col for s in sprites)
-            self._last_right_col = right_col
-            self._last_left_col = left_col
-        elif self._col_offsets:
-            # All ships temporarily airborne — use cached column indices.
-            right_col = self._last_right_col
-            left_col = self._last_left_col
-        else:
-            return
+        right_col = self._last_right_col
+        left_col = self._last_left_col
 
         right_edge = self._origin_x + self._col_offsets[right_col]
         left_edge = self._origin_x + self._col_offsets[left_col]
@@ -690,11 +719,15 @@ class EnemyGrid:
         self._origin_x += dx
         for sprite in self._sprite_list:  # type: ignore[attr-defined]
             sprite.center_x += dx
-            self._oob_check(sprite, "_move")
+        if self._debug:
+            for sprite in self._sprite_list:  # type: ignore[attr-defined]
+                self._oob_check(sprite, "_move")
 
     def _drop(self, distance: float) -> None:
         delta = distance * self._drop_direction  # negative = down, positive = up
         self._origin_y += delta
         for sprite in self._sprite_list:  # type: ignore[attr-defined]
             sprite.center_y += delta
-            self._oob_check(sprite, "_drop")
+        if self._debug:
+            for sprite in self._sprite_list:  # type: ignore[attr-defined]
+                self._oob_check(sprite, "_drop")

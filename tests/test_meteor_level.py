@@ -177,12 +177,10 @@ class TestConsumeHits:
 
 
 class TestGetEnemyBullets:
-    def test_returns_empty_sprite_list(self) -> None:
-        import arcade
-
+    def test_returns_empty_list(self) -> None:
         level = _make_level()
         result = level.get_enemy_bullet_sprite_list()
-        assert isinstance(result, arcade.SpriteList)
+        assert isinstance(result, list)
         assert len(result) == 0
 
 

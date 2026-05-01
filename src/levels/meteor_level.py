@@ -227,11 +227,11 @@ class MeteorLevel(BaseLevel):
     # Sprite lists
     # ------------------------------------------------------------------
 
-    def get_all_enemy_sprites(self) -> arcade.SpriteList:
-        return self._meteor_list
+    def get_all_enemy_sprites(self) -> list[arcade.Sprite]:
+        return list(self._meteor_list)
 
-    def get_enemy_bullet_sprite_list(self) -> arcade.SpriteList:
-        return self._empty_bullets
+    def get_enemy_bullet_sprite_list(self) -> list[arcade.Sprite]:
+        return list(self._empty_bullets)
 
     # ------------------------------------------------------------------
     # Power-ups

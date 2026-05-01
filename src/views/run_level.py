@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import gc
 import time
 from typing import TYPE_CHECKING, Optional
 
 import arcade
-import gc
 
 if TYPE_CHECKING:
     from src.state import GameStateManager
@@ -157,6 +157,7 @@ class RunLevelView(arcade.View):
     # ------------------------------------------------------------------
 
     def on_show_view(self) -> None:
+        gc.disable()
         arcade.set_background_color(arcade.color.BLACK)
         ctx = self._manager.context
         players = ctx.get("players", [])
@@ -218,7 +219,11 @@ class RunLevelView(arcade.View):
 
         delta_time = min(delta_time, 1.0 / 15.0)  # cap to ~66ms to survive debugger pauses
 
-        if self._debug and delta_time > 0.025:
+        _spike = delta_time > 0.025
+        _cfg_spike = self._manager.context.get("config")
+        _show_timing = _cfg_spike is not None and _cfg_spike.debug_show_collision_timing
+
+        if _spike and (self._debug or _show_timing):
             print(f"Frame spike: {delta_time*1000:.1f}ms")
 
         self._frame_count = (self._frame_count + 1) & 0xF
@@ -227,8 +232,6 @@ class RunLevelView(arcade.View):
             # Run a gen-0 sweep each frame to prevent orphaned GL buffer objects
             # (created by any remaining on_draw allocations) from building up and
             # triggering a slow gen-2 collection the moment gameplay resumes.
-            import gc
-
             gc.collect(0)
             return
 
@@ -268,14 +271,13 @@ class RunLevelView(arcade.View):
                 bullet.update(delta_time)  # type: ignore[arg-type]
             if self._level is not None:
                 self._level.update(
-                    delta_time, None
+                    delta_time, None, self._player_bullets
                 )  # keep enemy animations alive; no player to collide
             for popup in self._score_popups:
                 popup.update(delta_time)
             self._score_popups = [p for p in self._score_popups if not p.is_done]
             explosion_done = self._death_explosion is None or self._death_explosion.is_complete
             if explosion_done or self._death_timer >= 2.0:
-                import gc
                 gc.collect()
                 players = self._manager.context.get("players", [])
                 is_multiplayer = len(players) > 1
@@ -333,7 +335,7 @@ class RunLevelView(arcade.View):
             for bullet in list(self._player_bullets):
                 bullet.update(delta_time)  # type: ignore[arg-type]
             if self._level is not None:
-                for bullet in list(self._level.get_enemy_bullet_sprite_list()):
+                for bullet in self._level.get_enemy_bullet_sprite_list():
                     bullet.update(delta_time)
                 _pu_manager = self._level.get_powerup_manager()
                 if _pu_manager is not None:
@@ -342,6 +344,7 @@ class RunLevelView(arcade.View):
                     if isinstance(_pu_manager, SAPowerUpManager):
                         _pu_manager.update_sprites_only(delta_time)
             if not self._explosions:
+                gc.collect()
                 self._save_player_hp()
                 self._manager.transition(GameState.LEVEL_COMPLETE)
             return
@@ -406,13 +409,12 @@ class RunLevelView(arcade.View):
             frame_count=self._frame_count,
         )
         _t2 = time.perf_counter()
-        if self._debug and delta_time > 0.025:
+        if _spike and (self._debug or _show_timing):
             print(
                 f"  PlayerBullets: {(_t1 - _t0) * 1000:.1f}ms"
                 f"  LevelUpdate: {(_t2 - _t1) * 1000:.1f}ms"
             )
-            cfg = self._manager.context.get("config")
-            if cfg is not None and cfg.debug_show_collision_timing:
+            if _show_timing:
                 _timing = self._level.get_last_timing()
                 if _timing:
                     _ms = lambda t: f"{t * 1000:.1f}ms" if t is not None else "skip"  # noqa: E731
@@ -422,6 +424,13 @@ class RunLevelView(arcade.View):
                         f"  Grid[bodies]: {_ms(_timing.get('grid_bodies'))}"
                         f"  Dive[bodies]: {_ms(_timing.get('dive_bodies'))}"
                         f"  Dive[bombs]: {_ms(_timing.get('dive_bombs'))}"
+                    )
+                    print(
+                        f"    move={_ms(_timing.get('grid_move_only'))}"
+                        f"  hp={_ms(_timing.get('grid_hp_timers'))}"
+                        f"  blt_upd={_ms(_timing.get('grid_bullet_upd'))}"
+                        f"  shoot={_ms(_timing.get('grid_shooting'))}"
+                        f"  bullets={_timing.get('bullet_count', '?')}"
                     )
         if GameEvent.ENEMY_SHOT in events and self._snd_enemy_shoot is not None:
             self._sm_enemy_shoot.play(self._snd_enemy_shoot, volume=self._sfx_volume())
@@ -661,8 +670,6 @@ class RunLevelView(arcade.View):
         if key == arcade.key.P:
             self._paused = not self._paused
             if self._paused:
-                import gc
-
                 gc.collect()  # full collection now so nothing accumulates during pause
                 self.window.music.pause()  # type: ignore[attr-defined]
             else:
@@ -737,6 +744,7 @@ class RunLevelView(arcade.View):
         """Begin death sequence: explosion plays, then PLAYER_KILLED transition."""
         if self._dying or self._ship is None:
             return
+        gc.collect()
         self._dying = True
         self._death_timer = 0.0
         if self._snd_player_killed is not None:
@@ -790,7 +798,7 @@ class RunLevelView(arcade.View):
         bar_h = ui_cfg.hp_bar_height
         y_off = ui_cfg.hp_bar_y_offset
 
-        sprites = list(self._level.get_all_enemy_sprites()) if self._level is not None else []
+        sprites = self._level.get_all_enemy_sprites() if self._level is not None else []
 
         for enemy in sprites:
             if enemy.hp_bar_timer <= 0 or enemy.max_hit_points == 0:
