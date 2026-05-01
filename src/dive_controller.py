@@ -348,6 +348,21 @@ class DiveController:
         """True if any ships are currently diving or returning."""
         return len(self._active_ships) > 0
 
+    def recall_all_airborne(self, enemy_grid: Optional["EnemyGrid"]) -> None:
+        """Immediately return all airborne ships to the grid.
+
+        Called before level transition when the death timer expires with ships
+        still in flight — prevents them from being lost from the formation.
+        *enemy_grid* may be None for level types (e.g. BossLevel) whose divers
+        have no source-map entries and therefore never call return_from_dive().
+        """
+        for ship in list(self._active_ships):
+            ship.remove_from_sprite_lists()
+            source = self._source_map.pop(id(ship), None)
+            if source is not None and enemy_grid is not None:
+                enemy_grid.return_from_dive(source)
+        self._active_ships.clear()
+
     def get_ship_sprite_list(self) -> arcade.SpriteList:
         """Return the active diving ship sprite list (for HP bars and flash effects)."""
         return self._ship_list

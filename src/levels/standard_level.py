@@ -172,6 +172,10 @@ class StandardLevel(BaseLevel):
     def block_new_launches(self) -> None:
         self._dive.new_dive_launches_blocked = True
 
+    def recall_all_airborne(self) -> None:
+        """Force all diving ships back to their grid slots immediately."""
+        self._dive.recall_all_airborne(self._grid)
+
     # ------------------------------------------------------------------
     # Velocity
     # ------------------------------------------------------------------

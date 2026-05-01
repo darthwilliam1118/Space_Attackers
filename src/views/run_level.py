@@ -286,13 +286,15 @@ class RunLevelView(arcade.View):
                     self._waiting_for_dives = True
                     self._level.block_new_launches()
                 else:
+                    if self._level is not None and self._level.has_any_airborne():
+                        self._level.recall_all_airborne()  # type: ignore[union-attr]
                     self._manager.transition(GameState.PLAYER_KILLED)
             return
 
         # 2P wait: dives must complete before we snapshot and switch players
         if self._waiting_for_dives:
             if self._level is not None:
-                self._level.update(delta_time, None)
+                self._level.update(delta_time, None, self._player_bullets)
                 if not self._level.has_any_airborne():
                     self._waiting_for_dives = False
                     self._manager.transition(GameState.PLAYER_KILLED)

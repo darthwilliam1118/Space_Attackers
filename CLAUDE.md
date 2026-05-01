@@ -89,6 +89,9 @@ Always use the 3.x API. Key breaking changes to be aware of:
 - Add a sprite to a named list: scene.add_sprite("name", sprite)
 - Draw all layers: scene.draw()
 - Access a list: scene["name"]
+- while `gc.disable()` is active during gameplay, never
+construct an `arcade.SpriteList()` per frame containing sprites that already live in
+another SpriteList — it creates an unbreakable cycle.
 
 ### Sprites
 - When constructing all sprites, use global config setting SPRITE_SCALE

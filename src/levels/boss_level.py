@@ -601,6 +601,11 @@ class BossLevel(BaseLevel):
         if self._dive_ctrl is not None:
             self._dive_ctrl.new_dive_launches_blocked = True
 
+    def recall_all_airborne(self) -> None:
+        """Remove all airborne dive ships immediately (no grid to return to)."""
+        if self._dive_ctrl is not None:
+            self._dive_ctrl.recall_all_airborne(None)
+
     # ------------------------------------------------------------------
     # Velocity — for explosion drift
     # ------------------------------------------------------------------
