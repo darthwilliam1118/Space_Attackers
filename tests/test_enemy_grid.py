@@ -303,6 +303,7 @@ class TestApplyPlayerBullet:
         bullet = arcade.Sprite(bullet_tex)
         bullet.center_x = enemy.center_x
         bullet.center_y = enemy.center_y
+        bullet.damage = 99999  # type: ignore[attr-defined]
         result = g.apply_player_bullet(bullet)
         assert result is not None
         assert (result.cx, result.cy) == (expected_cx, expected_cy)
@@ -316,6 +317,7 @@ class TestApplyPlayerBullet:
         bullet = arcade.Sprite(bullet_tex)
         bullet.center_x = enemy.center_x
         bullet.center_y = enemy.center_y
+        bullet.damage = 99999  # type: ignore[attr-defined]
         g.apply_player_bullet(bullet)
         assert len(g.get_sprite_list()) == 0
 

@@ -7,7 +7,7 @@ effects_volume = 16
 debug = false
 god_mode = false
 debug_show_collision_timing = false
-max_window_height = 1000
+max_window_height = 800
 sprite_scale = 0.5
 force_level_type = ""
 
@@ -33,7 +33,7 @@ star_speed_max = 120.0
 [enemies]
 enemy_cols_start = 7
 enemy_rows_start = 4
-enemy_cols_max = 17
+enemy_cols_max = 15
 enemy_rows_max = 10
 enemy_cols_per_level = 2
 enemy_rows_per_level = 1

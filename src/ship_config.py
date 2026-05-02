@@ -11,10 +11,10 @@ class ShipConfig:
     ship_accel: float = 1000.0  # acceleration rate (px/s²) when key held
     ship_decel: float = 1200.0  # deceleration rate (px/s²) when key released
     ship_tilt_rate: float = 90.0  # tilt animation speed (degrees/second)
-    fire_cooldown: float = 0.3
+    fire_cooldown: float = 0.15
     bullet_speed: float = 500.0
     spawn_invincible_duration: float = 2.0
     ship_zone_height_pct: float = 0.33
     explosion_frame_duration: float = 0.05
-    player_max_hp: int = 100
+    player_max_hp: int = 200
     player_bullet_damage: int = 100

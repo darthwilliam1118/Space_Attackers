@@ -36,7 +36,7 @@ class SAPowerUpConfig(PowerUpConfigBase):
     free_move_duration: float = 8.0
 
     # Spawn interval divisor for meteor levels (>1 = more frequent)
-    meteor_spawn_interval_factor: float = 2.0
+    meteor_spawn_interval_factor: float = 3.0
 
     # Pickup sprite scale (independent of global sprite_scale)
     powerups_scale: float = 1.0
@@ -49,4 +49,4 @@ class SAPowerUpConfig(PowerUpConfigBase):
     weight_speed_boost: float = 6.0
     weight_triple_shot: float = 7.0
     weight_spread_shot: float = 6.0
-    weight_free_move: float = 3.0
+    weight_free_move: float = 0.0

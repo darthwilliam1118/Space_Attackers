@@ -136,11 +136,11 @@ class GameConfig(BaseGameConfig):
                 ec_raw.get("enemy_bullet_damage", EnemyConfig.enemy_bullet_damage)
             ),
             enemy_hp={
-                1: int(ec_raw.get("enemy_hp_type_1", 100)),
-                2: int(ec_raw.get("enemy_hp_type_2", 100)),
+                1: int(ec_raw.get("enemy_hp_type_1", 200)),
+                2: int(ec_raw.get("enemy_hp_type_2", 150)),
                 3: int(ec_raw.get("enemy_hp_type_3", 150)),
-                4: int(ec_raw.get("enemy_hp_type_4", 150)),
-                5: int(ec_raw.get("enemy_hp_type_5", 200)),
+                4: int(ec_raw.get("enemy_hp_type_4", 100)),
+                5: int(ec_raw.get("enemy_hp_type_5", 100)),
             },
             enemy_hp_level_factor=float(
                 ec_raw.get("enemy_hp_level_factor", EnemyConfig.enemy_hp_level_factor)

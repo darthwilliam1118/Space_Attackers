@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 @dataclass
 class MeteorConfig:
-    storm_duration: float = 60.0
+    storm_duration: float = 30.0
     spawn_rate_base: float = 3.0
     spawn_rate_scale_pct: float = 0.10
     spawn_rate_max: float = 15.0
