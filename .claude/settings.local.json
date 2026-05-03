@@ -29,7 +29,10 @@
       "Bash(xargs grep *)",
       "Bash(grep -E \"\\\\.py$\")",
       "Read(//c/Users/darth/Code/**)",
-      "Bash(pip show *)"
+      "Bash(pip show *)",
+      "PowerShell(pip install -e \".[dev]\")",
+      "PowerShell(python -c \"from agf.sound_manager import SoundManager; print\\('OK'\\)\")",
+      "Bash(git rm *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\darth\\Code\\arcade-game-framework"

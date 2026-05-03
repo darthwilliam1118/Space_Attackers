@@ -6,9 +6,8 @@ from typing import TYPE_CHECKING, Optional
 
 import arcade
 from agf.paths import resource_path
+from agf.sound_manager import SoundManager
 from agf.views.level_complete import LevelCompleteView as _LevelCompleteViewBase
-
-from src.sound_manager import SoundManager
 
 if TYPE_CHECKING:
     from src.state import GameStateManager
