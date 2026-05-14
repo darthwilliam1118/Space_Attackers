@@ -3,7 +3,7 @@
 A Space Invaders-style arcade game built in Python using the [Arcade](https://api.arcade.academy/) library. This project was created as a learning exercise for [Claude Code](https://claude.ai/claude-code).
 
 ## Download
-👾 [Download Space Attackers for Windows](https://github.com/darthwilliam1118/Space_Attackers/releases/latest)
+👾 [Download Space Attackers for Windows or Linux](https://github.com/darthwilliam1118/Space_Attackers/releases/latest)
 ## How to Play
 
 ### Controls
@@ -29,10 +29,15 @@ Destroy all enemies in the grid before their bullets hit your ship. Clear each w
 - Finish waves quickly.
 
 ## Running the Game
+For Windows, just download the EXE file and the game_config.toml. Put those in a folder and double click the EXE to run. The first time you will get a warning saying this is an unsigned EXE. Just click "More Info" then "Run Anyway" and it will run.
+
+For Linux, either clone the repo or download the tar.gz and extract it somewhere. Then go into the Space_Attackers-vvv folder and run these commands:
 
 ```bash
-pip install -r requirements.txt
-python main.py
+python3.14 -m venv venv
+source venv/bin/activate
+pip install .
+python -m src
 ```
 
 Run tests:
